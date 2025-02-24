@@ -19,11 +19,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void handleLogin() async {
     setState(() => isLoading = true);
 
-    // bool success = await authService.login(
-    //   persnoController.text.trim(),
-    //   passwordController.text.trim(),
-    // );
-    bool success = true;
+    bool success = await authService.login(
+      persnoController.text.trim(),
+      passwordController.text.trim(),
+    );
+    // bool success = true;
 
     setState(() => isLoading = false);
 

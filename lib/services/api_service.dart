@@ -4,9 +4,6 @@ import '../models/attendance.dart';
 import '../utils/constants.dart';
 
 class ApiService {
-  static const String baseUrl =
-      "http://localhost:5000/api"; // Change to your .NET API URL
-
   static Future<List<Attendance>> fetchAttendance() async {
     final response = await http.get(Uri.parse('$API_BASE_URL/attendance'));
 

@@ -8,9 +8,14 @@ import '../widgets/attendance_summary.dart';
 import '../widgets/greetings.dart';
 import '../widgets/bottom_navbar.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
 
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   final List<Feature> features = [
     Feature(title: 'Attendance', iconPath: 'assets/icons/attendance.png'),
     Feature(title: 'Payslip', iconPath: 'assets/icons/payslip.png'),
@@ -25,13 +30,15 @@ class HomePage extends StatelessWidget {
     Feature(title: 'PDP', iconPath: 'assets/icons/paybill.png'),
   ];
 
+  Future<void> _refresh() async {
+    setState(() {}); // Rebuilds the widget to refresh the data
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Greetings(),
-        // flexibleSpace: Greetings(),
-        // leading: Image.asset('assets/icons/mecon.png', width: 40, height: 40),
         actions: [
           Padding(
               padding: const EdgeInsets.all(10.0),
@@ -39,33 +46,34 @@ class HomePage extends StatelessWidget {
                   Image.asset('assets/icons/mecon.png', width: 40, height: 40)),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Greetings(),
-              AttendanceSummary(),
-              // const SizedBox(height: 12), // Space before grid
-
-              // ✅ Grid should scroll, so wrap with a fixed height and shrinkWrap
-              GridView.builder(
-                physics:
-                    const NeverScrollableScrollPhysics(), // Prevents double scrolling
-                shrinkWrap:
-                    true, // Allows the grid to take only the required space
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // 2 cards per row
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 1,
+      body: RefreshIndicator(
+        onRefresh: _refresh, // Swipe down triggers this function
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SingleChildScrollView(
+            physics:
+                const AlwaysScrollableScrollPhysics(), // Allows scrolling when not full
+            child: Column(
+              children: [
+                AttendanceSummary(),
+                GridView.builder(
+                  physics:
+                      const NeverScrollableScrollPhysics(), // Prevents double scrolling
+                  shrinkWrap:
+                      true, // Allows the grid to take only the required space
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, // 2 cards per row
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: features.length,
+                  itemBuilder: (context, index) {
+                    return FeatureCard(feature: features[index]);
+                  },
                 ),
-                itemCount: features.length,
-                itemBuilder: (context, index) {
-                  return FeatureCard(feature: features[index]);
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
