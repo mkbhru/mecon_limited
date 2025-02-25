@@ -36,6 +36,22 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
     return (dateTime.length >= 11) ? dateTime.substring(11) : "--:--";
   }
 
+  String headerText(String dateTimeString) {
+    DateTime dateTime = DateTime.parse(dateTimeString);
+    DateTime today = DateTime.now();
+    if (dateTime.year == today.year &&
+        dateTime.month == today.month &&
+        dateTime.day == today.day) {
+      return "Today's Attendance";
+    } else if (dateTime.year == today.year &&
+        dateTime.month == today.month &&
+        dateTime.day == today.day - 1) {
+      return "Yesterday's Attendance";
+    } else {
+      return "${dateTime.day}/${dateTime.month}/${dateTime.year}'s Attendance";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -56,8 +72,8 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Today's Attendance Summary",
+          Text(
+            headerText(attendanceData?["TrDt"]),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
