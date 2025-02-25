@@ -46,13 +46,13 @@ class _LoginScreenState extends State<LoginScreen> {
         title: Center(child: Text('MECON Employee Login', style: TextStyle(fontWeight: FontWeight.bold),)),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
 
           children: [
             Image.asset('assets/icons/mecon2.png', width: 120, height: 120),
-            SizedBox(height: 80),
+            SizedBox(height: 40),
             TextField(
               controller: persnoController,
               decoration: InputDecoration(labelText: 'Personnel No'),

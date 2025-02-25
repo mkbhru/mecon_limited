@@ -3,6 +3,7 @@ import '../models/feature.dart';
 import '../widgets/feature_card.dart';
 import '../widgets/attendance_summary.dart';
 import '../widgets/greetings.dart';
+import 'attendance_screen.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -69,7 +70,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                   itemCount: features.length,
                   itemBuilder: (context, index) {
-                    return FeatureCard(feature: features[index]);
+                    return FeatureCard(feature: features[index],
+                        onTap: () {
+                      // Navigator.pushNamed(context, features[index].route);
+                      Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => AttendanceScreen()),
+                            (Route<dynamic> route) => false,
+                          );
+                    });
                   },
                 ),
               ],
