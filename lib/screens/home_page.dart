@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/feature.dart';
 import '../widgets/feature_card.dart';
-import '../services/api_service.dart';
-import '../models/attendance.dart';
-import 'attendance_screen.dart'; // Import the attendance screen
 import '../widgets/attendance_summary.dart';
 import '../widgets/greetings.dart';
-import '../widgets/bottom_navbar.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -30,8 +26,12 @@ class _HomePageState extends State<HomePage> {
     Feature(title: 'PDP', iconPath: 'assets/icons/paybill.png'),
   ];
 
+  final GlobalKey<AttendanceSummaryState> _attendanceKey =
+      GlobalKey(); // ✅ Add key
+
   Future<void> _refresh() async {
-    setState(() {}); // Rebuilds the widget to refresh the data
+    await _attendanceKey.currentState
+        ?.fetchAttendanceData(); // ✅ Refresh attendance
   }
 
   @override
@@ -47,15 +47,15 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refresh, // Swipe down triggers this function
+        onRefresh: _refresh, // ✅ Swipe down to refresh attendance
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: SingleChildScrollView(
             physics:
-                const AlwaysScrollableScrollPhysics(), // Allows scrolling when not full
+                const AlwaysScrollableScrollPhysics(), // ✅ Allows scrolling for refresh
             child: Column(
               children: [
-                AttendanceSummary(),
+                AttendanceSummary(key: _attendanceKey), // ✅ Pass key
                 GridView.builder(
                   physics:
                       const NeverScrollableScrollPhysics(), // Prevents double scrolling
