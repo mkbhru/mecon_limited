@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import '../models/attendance.dart';
-import '../widgets/attendance_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/amonth_service.dart'; // API service file
 
 class AttendanceScreen extends StatefulWidget {
-   static void navigate(BuildContext context) {
-    Navigator.push(
-        context, MaterialPageRoute(builder: (_) => AttendanceScreen()));
-  }
   const AttendanceScreen({Key? key}) : super(key: key);
 
   @override
@@ -15,76 +10,217 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-  late Future<List<Attendance>> _attendanceFuture;
+  List<dynamic> attendanceData = [];
+  bool isLoading = false;
+
+  // Dropdown options
+  final List<int> years = [2020, 2021, 2022, 2023, 2024, 2025];
+  final Map<int, String> months = {
+    1: "January",
+    2: "February",
+    3: "March",
+    4: "April",
+    5: "May",
+    6: "June",
+    7: "July",
+    8: "August",
+    9: "September",
+    10: "October",
+    11: "November",
+    12: "December"
+  };
+
+  late int selectedYear;
+  late int selectedMonth;
 
   @override
   void initState() {
     super.initState();
-    _attendanceFuture = ApiService.fetchAttendance();
+    // Set default values to current year and month
+    final now = DateTime.now();
+    selectedYear = now.year;
+    selectedMonth = now.month;
+
+    // Fetch attendance automatically when the screen loads
+    fetchAttendance();
+  }
+
+  String formatTime(dynamic dateTimeString) {
+    if (dateTimeString == null) return "--:--";
+    String dateTime = dateTimeString.toString();
+    return (dateTime.length >= 11) ? dateTime.substring(11) : "--:--";
+  }
+
+  String formatDate(dynamic dateTimeString) {
+    if (dateTimeString == null) return "--:--";
+    String dateTime = dateTimeString.toString();
+    return (dateTime.length >= 11) ? dateTime.substring(0, 10) : "--:--";
+  }
+
+  Future<void> fetchAttendance() async {
+    setState(() => isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final persNo = prefs.getString("persNo") ?? 'd1525';
+
+      final data = await ApiService()
+          .fetchAttendance(persNo, selectedYear, selectedMonth);
+      setState(() => attendanceData = data);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching data: $e")),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Attendance")),
-      body: FutureBuilder<List<Attendance>>(
-        future: _attendanceFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text("Failed to load data"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No attendance records available"));
-          }
-
-          List<Attendance> attendanceList = snapshot.data!;
-          Attendance today =
-              attendanceList.first; // Assuming the first item is today’s data
-
-          return Column(
-            children: [
-              // Highlight today's attendance
-              Card(
-                elevation: 5,
-                color: Colors.blueAccent,
-                margin: const EdgeInsets.all(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Today's Attendance",
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white)),
-                      const SizedBox(height: 8),
-                      Text("First In: ${today.firstIn}",
-                          style: const TextStyle(color: Colors.white)),
-                      Text("Lunch In: ${today.lunchIn}",
-                          style: const TextStyle(color: Colors.white)),
-                      Text("Lunch Out: ${today.lunchOut}",
-                          style: const TextStyle(color: Colors.white)),
-                      Text("Last Out: ${today.lastOut}",
-                          style: const TextStyle(color: Colors.white)),
-                    ],
+      appBar: AppBar(title: const Text("Attendance Summary")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Year & Month Dropdown Row
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: selectedYear, // Default year
+                    decoration: InputDecoration(
+                      labelText: "Select Year",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    items: years.map((year) {
+                      return DropdownMenuItem(
+                        value: year,
+                        child: Text(year.toString()),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() => selectedYear = value ?? selectedYear);
+                    },
                   ),
                 ),
-              ),
-
-              // Display past attendance in a scrollable list
-              Expanded(
-                child: ListView.builder(
-                  itemCount: attendanceList.length,
-                  itemBuilder: (context, index) {
-                    return AttendanceCard(attendance: attendanceList[index]);
-                  },
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: selectedMonth, // Default month
+                    decoration: InputDecoration(
+                      labelText: "Select Month",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    items: months.entries.map((entry) {
+                      return DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() => selectedMonth = value ?? selectedMonth);
+                    },
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: fetchAttendance,
+                  child: const Text("Fetch"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Loading Indicator
+            isLoading
+                ? const CircularProgressIndicator()
+                : attendanceData.isEmpty
+                    ? const Text("No data available",
+                        style: TextStyle(fontSize: 16))
+                    : Expanded(
+                        child: Scrollbar(
+                          thumbVisibility: true,
+                          thickness: 8,
+                          radius: const Radius.circular(10),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTableTheme(
+                                data: DataTableThemeData(
+                                  headingRowColor:
+                                      MaterialStateColor.resolveWith(
+                                          (states) => Colors.blue.shade100),
+                                  dataRowColor: MaterialStateColor.resolveWith(
+                                      (states) => Colors.white),
+                                ),
+                                child: DataTable(
+                                  columnSpacing: 20,
+                                  headingRowHeight: 50,
+                                  dataRowHeight: 45,
+                                  border: TableBorder.all(
+                                    color: Colors.grey.shade300,
+                                    width: 1,
+                                  ),
+                                  columns: const [
+                                    DataColumn(
+                                        label: Text("Date",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold))),
+                                    DataColumn(
+                                        label: Text("First In",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold))),
+                                    DataColumn(
+                                        label: Text("Lunch Out",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold))),
+                                    DataColumn(
+                                        label: Text("Lunch In",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold))),
+                                    DataColumn(
+                                        label: Text("Last Out",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold))),
+                                  ],
+                                  rows: attendanceData.map<DataRow>((data) {
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(
+                                            Text(formatDate(data["TrDt"]))),
+                                        DataCell(
+                                            Text(formatTime(data["FirstIn"]))),
+                                        DataCell(
+                                            Text(formatTime(data["LunchOUT"]))),
+                                        DataCell(
+                                            Text(formatTime(data["LunchIN"]))),
+                                        DataCell(
+                                            Text(formatTime(data["LastOut"]))),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+          ],
+        ),
       ),
     );
   }

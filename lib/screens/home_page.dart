@@ -72,12 +72,9 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     return FeatureCard(feature: features[index],
                         onTap: () {
-                      // Navigator.pushNamed(context, features[index].route);
-                      Navigator.pushAndRemoveUntil(
-                            context,
+                      Navigator.of(context).push(
                             MaterialPageRoute(
-                                builder: (context) => AttendanceScreen()),
-                            (Route<dynamic> route) => false,
+                                builder: (context) => const AttendanceScreen()),
                           );
                     });
                   },

@@ -13,7 +13,7 @@ class ApiService {
       print("No token found!");
       return null;
     }
-    print("Token: $token");
+    // print("Token: $token");
 
     // Decode JWT token to extract `PersNo`
     Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
@@ -23,6 +23,9 @@ class ApiService {
       print("PersNo not found in token!");
       return null;
     }
+
+    await prefs.setString('persNo', sub?? '');
+    print("successfully saved in prefs: ${prefs.getString("persNo")}");
 
     print("Extracted PersNo: $persNo"); // Debugging log
 

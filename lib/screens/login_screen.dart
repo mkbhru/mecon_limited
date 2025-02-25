@@ -48,11 +48,12 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
 
           children: [
+            // SizedBox(height: 40),
             Image.asset('assets/icons/mecon2.png', width: 120, height: 120),
-            SizedBox(height: 40),
+            
             TextField(
               controller: persnoController,
               decoration: InputDecoration(labelText: 'Personnel No'),

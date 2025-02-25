@@ -73,7 +73,7 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            headerText(attendanceData?["TrDt"]),
+            headerText(attendanceData?["TrDt"]??""),
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
