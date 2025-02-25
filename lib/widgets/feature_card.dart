@@ -13,9 +13,11 @@ class FeatureCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Card(
+        margin: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Padding(padding: const EdgeInsets.all(8)),
             Image.asset(feature.iconPath, width: 50, height: 50),
             const SizedBox(height: 8),
             Text(feature.title,
