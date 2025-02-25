@@ -102,3 +102,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon.png"  # Path to your app icon (1024x1024 recommended)
+  adaptive_icon_background: "#ffffff"  # Background color (for Android adaptive icons)
+  adaptive_icon_foreground: "assets/app_icon.png"  # Foreground image (optional)
