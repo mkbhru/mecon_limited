@@ -14,20 +14,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   bool isLoading = false;
 
   // Dropdown options
-  final List<int> years = [2020, 2021, 2022, 2023, 2024, 2025];
+  final List<int> years = [2025];
   final Map<int, String> months = {
     1: "January",
     2: "February",
-    3: "March",
-    4: "April",
-    5: "May",
-    6: "June",
-    7: "July",
-    8: "August",
-    9: "September",
-    10: "October",
-    11: "November",
-    12: "December"
+    // 3: "March",
+    // 4: "April",
+    // 5: "May",
+    // 6: "June",
+    // 7: "July",
+    // 8: "August",
+    // 9: "September",
+    // 10: "October",
+    // 11: "November",
+    // 12: "December"
   };
 
   late int selectedYear;
@@ -111,6 +111,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: DropdownButtonFormField<int>(
                     value: selectedMonth, // Default month
                     decoration: InputDecoration(
+                      
                       labelText: "Select Month",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
@@ -130,10 +131,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: fetchAttendance,
-                  child: const Text("Fetch"),
+                  child: const Text("🔄"),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 15),
+                        horizontal: 15, vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),

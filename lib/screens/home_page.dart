@@ -70,13 +70,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                   itemCount: features.length,
                   itemBuilder: (context, index) {
-                    return FeatureCard(feature: features[index],
-                        onTap: () {
-                      Navigator.of(context).push(
+                    return FeatureCard(
+                      feature: features[index],
+                      onTap: () {
+                        if (features[index].title == "Attendance") {
+                          Navigator.push(
+                            context,
                             MaterialPageRoute(
                                 builder: (context) => const AttendanceScreen()),
                           );
-                    });
+                        } 
+                      },
+                    );
                   },
                 ),
               ],

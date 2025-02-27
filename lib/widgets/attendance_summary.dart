@@ -36,7 +36,8 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
     return (dateTime.length >= 11) ? dateTime.substring(11) : "--:--";
   }
 
-  String headerText(String dateTimeString) {
+  String headerText(dynamic dateTimeString) {
+    if (dateTimeString == null) return "--:--";
     DateTime dateTime = DateTime.parse(dateTimeString);
     DateTime today = DateTime.now();
     if (dateTime.year == today.year &&
