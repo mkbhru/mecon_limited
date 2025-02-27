@@ -5,6 +5,7 @@ import './notifications_page.dart'; // Notifications content
 import './notes_page.dart'; // Notes content
 import 'settings_page.dart'; // Settings content
 import './chat_page.dart';
+import 'package:double_back_to_close/double_back_to_close.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -29,15 +30,30 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedIndex = index;
     });
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex], // Show selected page
+      body:  // Show selected page
+      DoubleBack(
+        onFirstBackPress: (context) {
+          // you can use your custom here
+          // change this with your custom action
+          final snackBar = SnackBar(content: Text('Press back again to exit'));
+          ScaffoldMessenger.of(context).showSnackBar(snackBar);
+          // ---
+        },
+        child: _pages[_selectedIndex],
+      ),
+
       bottomNavigationBar: BottomNavBar(
         currentIndex: _selectedIndex,
         onTabSelected: _onTabSelected,
       ),
     );
   }
+
+  
 }
+
+

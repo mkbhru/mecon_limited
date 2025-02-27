@@ -37,9 +37,14 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
   }
 
   String headerText(dynamic dateTimeString) {
-    if (dateTimeString == null) return "--:--";
-    DateTime dateTime = DateTime.parse(dateTimeString);
+    if (dateTimeString == null || dateTimeString.isEmpty) return "loading..";
+
+    DateTime? dateTime = DateTime.tryParse(dateTimeString.toString());
+
+    if (dateTime == null) return "--:--"; // Handle invalid date
+
     DateTime today = DateTime.now();
+
     if (dateTime.year == today.year &&
         dateTime.month == today.month &&
         dateTime.day == today.day) {
@@ -70,67 +75,81 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
       ),
       padding: const EdgeInsets.all(12.0),
       margin: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            headerText(attendanceData?["TrDt"]??""),
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : attendanceData == null
-                  ? const Center(child: Text("!Server is Down"))
-                  : GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.6,
-                      shrinkWrap: true, // Prevents the GridView from scrolling
-                      physics:
-                          const NeverScrollableScrollPhysics(), // Disables scrolling
-                      children: [
-                        AttendanceCard(
-                          icon: Icons.login,
-                          iconColor: Colors.green,
-                          title: "Check In",
-                          time: formatTime(attendanceData?["FirstIn"]),
-                          subtitle: attendanceData?["InStatusAct"] ?? "N/A",
-                          points: "+150 pt",
-                          pointsColor: Colors.green,
-                        ),
-                        AttendanceCard(
-                          icon: Icons.logout,
-                          iconColor: Colors.pinkAccent,
-                          title: "Check Out",
-                          time: formatTime(attendanceData?["LastOut"]),
-                          subtitle: attendanceData?["OutStatusAct"] ?? "N/A",
-                          points: "+100 pt",
-                          pointsColor: Colors.green,
-                        ),
-                        AttendanceCard(
-                          icon: Icons.timer,
-                          iconColor: Colors.purple,
-                          title: "Lunch Out",
-                          time: formatTime(attendanceData?["LunchOUT"]),
-                          subtitle: "On time",
-                          points: "",
-                          pointsColor: Colors.transparent,
-                        ),
-                        AttendanceCard(
-                          icon: Icons.timelapse,
-                          iconColor: Colors.brown,
-                          title: "Lunch In",
-                          time: formatTime(attendanceData?["LunchIN"]),
-                          subtitle: "On time",
-                          points: "+\$120.00",
-                          pointsColor: Colors.green,
-                        ),
-                      ],
-                    ),
-        ],
-      ),
+      child: isLoading
+          ? SizedBox(height: 240,child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "fetching live data..",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const Center(child: CircularProgressIndicator()),
+            ],
+          ))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  headerText(attendanceData?["TrDt"] ?? ""),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : attendanceData == null
+                        ? const Center(child: Text("!Server is Down"))
+                        : GridView.count(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.6,
+                            shrinkWrap:
+                                true, // Prevents the GridView from scrolling
+                            physics:
+                                const NeverScrollableScrollPhysics(), // Disables scrolling
+                            children: [
+                              AttendanceCard(
+                                icon: Icons.login,
+                                iconColor: Colors.green,
+                                title: "Check In",
+                                time: formatTime(attendanceData?["FirstIn"]),
+                                subtitle:
+                                    attendanceData?["InStatusAct"] ?? "N/A",
+                                points: "+150 pt",
+                                pointsColor: Colors.green,
+                              ),
+                              AttendanceCard(
+                                icon: Icons.logout,
+                                iconColor: Colors.pinkAccent,
+                                title: "Check Out",
+                                time: formatTime(attendanceData?["LastOut"]),
+                                subtitle:
+                                    attendanceData?["OutStatusAct"] ?? "N/A",
+                                points: "+100 pt",
+                                pointsColor: Colors.green,
+                              ),
+                              AttendanceCard(
+                                icon: Icons.timer,
+                                iconColor: Colors.purple,
+                                title: "Lunch Out",
+                                time: formatTime(attendanceData?["LunchOUT"]),
+                                subtitle: "On time",
+                                points: "",
+                                pointsColor: Colors.transparent,
+                              ),
+                              AttendanceCard(
+                                icon: Icons.timelapse,
+                                iconColor: Colors.brown,
+                                title: "Lunch In",
+                                time: formatTime(attendanceData?["LunchIN"]),
+                                subtitle: "On time",
+                                points: "+\$120.00",
+                                pointsColor: Colors.green,
+                              ),
+                            ],
+                          ),
+              ],
+            ),
     );
   }
 }
