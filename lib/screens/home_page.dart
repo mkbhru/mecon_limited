@@ -4,6 +4,16 @@ import '../widgets/feature_card.dart';
 import '../widgets/attendance_summary.dart';
 import '../widgets/greetings.dart';
 import 'attendance_screen.dart';
+import '../functions/payslip.dart';
+import '../functions/calendar.dart';
+import '../functions/mecon_bharti.dart';
+import '../functions/techquest.dart';
+import '../functions/circulars.dart';
+import '../functions/programmes.dart';
+import '../functions/tacd.dart';
+import '../functions/hr_sandesh.dart';
+import '../functions/policies.dart';
+import '../functions/pdp.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -13,6 +23,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // ✅ Define the list of features
   final List<Feature> features = [
     Feature(title: 'Attendance', iconPath: 'assets/icons/attendance.png'),
     Feature(title: 'Payslip', iconPath: 'assets/icons/payslip.png'),
@@ -27,12 +38,67 @@ class _HomePageState extends State<HomePage> {
     Feature(title: 'PDP', iconPath: 'assets/icons/paybill.png'),
   ];
 
+  // ✅ Define corresponding onTap functions
+  final List<void Function(BuildContext)> onTapFunctions = [];
+
   final GlobalKey<AttendanceSummaryState> _attendanceKey =
-      GlobalKey(); // ✅ Add key
+      GlobalKey(); // ✅ Key for AttendanceSummary
+
+  @override
+  void initState() {
+    super.initState();
+
+    // ✅ Initialize onTap functions list
+    onTapFunctions.addAll([
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Payslip()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Calendar()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const MeconBharti()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Techquest()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Circulars()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Programmes()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Tacd()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HrSandesh()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Policies()),
+          ),
+      (context) => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const Pdp()),
+          ),
+    ]);
+  }
 
   Future<void> _refresh() async {
-    await _attendanceKey.currentState
-        ?.fetchAttendanceData(); // ✅ Refresh attendance
+    await _attendanceKey.currentState?.fetchAttendanceData();
   }
 
   @override
@@ -42,28 +108,25 @@ class _HomePageState extends State<HomePage> {
         title: Greetings(),
         actions: [
           Padding(
-              padding: const EdgeInsets.all(10.0),
-              child:
-                  Image.asset('assets/icons/mecon.png', width: 40, height: 40)),
+            padding: const EdgeInsets.all(10.0),
+            child: Image.asset('assets/icons/mecon.png', width: 40, height: 40),
+          ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refresh, // ✅ Swipe down to refresh attendance
+        onRefresh: _refresh,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: SingleChildScrollView(
-            physics:
-                const AlwaysScrollableScrollPhysics(), // ✅ Allows scrolling for refresh
+            physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                AttendanceSummary(key: _attendanceKey), // ✅ Pass key
+                AttendanceSummary(key: _attendanceKey),
                 GridView.builder(
-                  physics:
-                      const NeverScrollableScrollPhysics(), // Prevents double scrolling
-                  shrinkWrap:
-                      true, // Allows the grid to take only the required space
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // 2 cards per row
+                    crossAxisCount: 2,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                     childAspectRatio: 1,
@@ -72,15 +135,8 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     return FeatureCard(
                       feature: features[index],
-                      onTap: () {
-                        if (features[index].title == "Attendance") {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const AttendanceScreen()),
-                          );
-                        } 
-                      },
+                      onTap: () =>
+                          onTapFunctions[index](context), // ✅ Pass onTap
                     );
                   },
                 ),
