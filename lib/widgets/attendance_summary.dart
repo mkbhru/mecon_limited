@@ -97,7 +97,7 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
                 isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : attendanceData == null
-                        ? const Center(child: Text("!Server is Down"))
+                        ? const Center(child: Text("Server is Busy!"))
                         : GridView.count(
                             crossAxisCount: 2,
                             crossAxisSpacing: 10,

@@ -41,6 +41,7 @@ dependencies:
   jwt_decoder: ^2.0.1
   double_back_to_close: ^2.0.0
   fluttertoast: ^8.2.12
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -107,6 +108,7 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
+  remove_alpha_ios: true
   image_path: "assets/app_icon.png"  # Path to your app icon (1024x1024 recommended)
   adaptive_icon_background: "#ffffff"  # Background color (for Android adaptive icons)
   adaptive_icon_foreground: "assets/app_icon.png"  # Foreground image (optional)
