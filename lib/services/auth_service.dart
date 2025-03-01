@@ -24,4 +24,31 @@ class AuthService {
       return false;
     }
   }
+
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString("token");
+
+    if (token == null) return false;
+
+    try {
+      final response = await http.get(
+        Uri.parse("$API_BASE_URL/employee/validate-token"),
+        headers: {
+          "token": token,
+          "Content-Type": "application/json"
+        },
+      );
+      // return true;
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("token");
+  }
 }
+

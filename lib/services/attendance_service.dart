@@ -19,19 +19,27 @@ class ApiService {
     Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
     String? sub = decodedToken["sub"]; // Extract `PersNo` claim
     String? persNo = sub;
+    String empInfoJson = decodedToken["empInfo"]?? "";
     if (persNo == null) {
       print("PersNo not found in token!");
       return null;
     }
+    //  Parse `empInfo` JSON string into a Map
+    Map<String, dynamic> empInfo = jsonDecode(empInfoJson);
+
+    await prefs.setString('persNo', sub ?? '');
+    await prefs.setString('FullName', empInfo["FullName"] ?? '');
 
     await prefs.setString('persNo', sub?? '');
     print("successfully saved in prefs: ${prefs.getString("persNo")}");
+    print("successfully saved in prefs: ${prefs.getString("FullName")}");
+
 
     print("Extracted PersNo: $persNo"); // Debugging log
 
     // Make API request using extracted `PersNo`
     final response = await http.get(
-      Uri.parse("$API_BASE_URL/Employee/attendance/$persNo"), // Pass PersNo in API URL
+      Uri.parse("$API_BASE_URL/attendance/attendance/$persNo"), // Pass PersNo in API URL
     );
 
     if (response.statusCode == 200) {
