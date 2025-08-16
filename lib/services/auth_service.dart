@@ -8,7 +8,7 @@ class AuthService {
     final url = Uri.parse('$API_BASE_URL/Auth/login');
     final response = await http.post(
       url,
-      body: jsonEncode({'persno': persno, 'password': password}),
+      body: jsonEncode({'pers_no': persno, 'password': password}),
       headers: {'Content-Type': 'application/json'},
     );
 
