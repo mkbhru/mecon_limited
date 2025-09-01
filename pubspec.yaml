@@ -42,6 +42,8 @@ dependencies:
   double_back_to_close: ^2.0.0
   fluttertoast: ^8.2.12
   url_launcher: ^6.3.1
+  table_calendar: ^3.1.2
+
 
 dev_dependencies:
   flutter_test:
