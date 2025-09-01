@@ -56,4 +56,38 @@ class ApiService {
       return null;
     }
   }
+
+  Future<List<Map<String, dynamic>>?> fetchLatestPunches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    if (token == null) {
+      print("No token found!");
+      return null;
+    }
+
+    Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+    String? persNo = decodedToken["sub"];
+
+    if (persNo == null) {
+      print("PersNo not found in token!");
+      return null;
+    }
+
+    final response = await http.get(
+      Uri.parse("$API_BASE_URL/attendance/fetch-latest-punches/$persNo"),
+    );
+
+    if (response.statusCode == 200) {
+      final decodedBody = jsonDecode(response.body);
+      if (decodedBody is List) {
+        return List<Map<String, dynamic>>.from(decodedBody);
+      } else {
+        return null;
+      }
+    } else {
+      print("Failed to fetch latest punches: ${response.statusCode}");
+      return null;
+    }
+  }
 }

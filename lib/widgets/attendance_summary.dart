@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'attendance_card2.dart';
 import '../services/attendance_service.dart'; // Import the API service
+import 'punches_popup.dart';
 
 class AttendanceSummary extends StatefulWidget {
   const AttendanceSummary({Key? key}) : super(key: key);
@@ -56,6 +57,15 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
     } else {
       return "${dateTime.day}/${dateTime.month}/${dateTime.year}'s Attendance";
     }
+  }
+
+  void showPunchesPopup() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const PunchesPopup();
+      },
+    );
   }
 
   @override
@@ -148,6 +158,39 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
                               ),
                             ],
                           ),
+                const SizedBox(height: 12),
+                Center(
+                  child: GestureDetector(
+                    onTap: showPunchesPopup,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time_filled,
+                            color: Colors.blue,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            "View Today's Punches",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
     );
