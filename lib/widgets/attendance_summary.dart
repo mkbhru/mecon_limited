@@ -179,7 +179,7 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            "View Today's Punches",
+                            "Today's Punch Log",
                             style: TextStyle(
                               color: Colors.blue,
                               fontSize: 12,

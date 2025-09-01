@@ -55,7 +55,7 @@ class PunchesPopupState extends State<PunchesPopup> {
         ),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.black,
+          color: Colors.grey[200],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -63,28 +63,35 @@ class PunchesPopupState extends State<PunchesPopup> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black87,
+                color: Colors.white,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   topRight: Radius.circular(12),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    spreadRadius: 2,
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    "PUNCH LOG",
+                    "Today's Punch Log",
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                      fontFamily: 'monospace',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    iconSize: 18,
+                    icon: const Icon(Icons.close, color: Colors.black87),
+                    iconSize: 20,
                   ),
                 ],
               ),
@@ -92,32 +99,36 @@ class PunchesPopupState extends State<PunchesPopup> {
             Expanded(
               child: Container(
                 padding: const EdgeInsets.all(12),
-                color: Colors.black,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
+                  ),
+                ),
                 child: isLoading
                     ? Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            "LOADING LOG...",
+                            "loading punch data..",
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.green,
-                              fontFamily: 'monospace',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const CircularProgressIndicator(color: Colors.green),
+                          const CircularProgressIndicator(color: Colors.blue),
                         ],
                       )
                     : punches == null || punches!.isEmpty
-                        ? const Center(
+                        ? Center(
                             child: Text(
-                              "NO PUNCH RECORDS FOUND",
+                              "No punches found for today",
                               style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.red,
-                                fontFamily: 'monospace',
+                                fontSize: 16,
+                                color: Colors.grey[600],
                               ),
                             ),
                           )
@@ -133,9 +144,9 @@ class PunchesPopupState extends State<PunchesPopup> {
                                   children: [
                                     Text(
                                       '${index + 1}.'.padLeft(3),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey,
+                                        color: Colors.grey[500],
                                         fontFamily: 'monospace',
                                       ),
                                     ),
@@ -145,7 +156,7 @@ class PunchesPopupState extends State<PunchesPopup> {
                                         '${formatTimestamp(punch['punchDate'], punch['punchTime'])} | ${punch['employeeId']} | ${punch['companyLocation']} | DEV:${punch['deviceId']}',
                                         style: const TextStyle(
                                           fontSize: 12,
-                                          color: Colors.green,
+                                          color: Colors.black87,
                                           fontFamily: 'monospace',
                                         ),
                                       ),
