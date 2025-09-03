@@ -1,9 +1,10 @@
-// monthly attendanve detail screen
+// lib/screens/attendance_screen.dart
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 import '../services/amonth_service.dart'; // API service file
+import 'package:mecon_limited/generated/l10n.dart'; // ✅ Localization
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({Key? key}) : super(key: key);
@@ -40,17 +41,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default values to current year and month
     final now = DateTime.now();
     selectedYear = now.year;
     selectedMonth = now.month;
 
-    // Fetch attendance automatically when the screen loads
     fetchAttendance();
   }
 
   String formatTime(dynamic dateTimeString) {
-    if (dateTimeString == null) return "--"; // Handle null values
+    if (dateTimeString == null) return "--";
     String dateTime = dateTimeString.toString();
     return (dateTime.length >= 11) ? dateTime.substring(11) : "--";
   }
@@ -64,7 +63,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Future<void> fetchAttendance() async {
     setState(() {
       isLoading = true;
-      isTimeout = false; // Reset timeout flag
+      isTimeout = false;
     });
 
     try {
@@ -74,7 +73,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final data = await Future.any([
         ApiService().fetchAttendance(persNo, selectedYear, selectedMonth),
         Future.delayed(const Duration(seconds: 10),
-            () => throw TimeoutException("Request timed out")),
+                () => throw TimeoutException("Request timed out")),
       ]);
 
       setState(() => attendanceData = data);
@@ -94,8 +93,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final headerStyle = const TextStyle(fontWeight: FontWeight.bold);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Attendance Summary")),
+      appBar: AppBar(title: Text(S.of(context).attendanceSummary)),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -107,7 +108,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: DropdownButtonFormField<int>(
                     value: selectedYear,
                     decoration: InputDecoration(
-                      labelText: "Select Year",
+                      labelText: S.of(context).selectYear,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -128,7 +129,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   child: DropdownButtonFormField<int>(
                     value: selectedMonth,
                     decoration: InputDecoration(
-                      labelText: "Select Month",
+                      labelText: S.of(context).selectMonth,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -147,7 +148,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 const SizedBox(width: 10),
                 ElevatedButton(
                   onPressed: fetchAttendance,
-                  child: const Text("🔄"),
+                  child: Text(S.of(context).refresh),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 15, vertical: 15),
@@ -158,86 +159,79 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
-
-            // Loading Indicator or Timeout Message
+            // Loading / Timeout / No Data
             if (isLoading)
               const CircularProgressIndicator()
             else if (isTimeout)
-              const Text(
-                "⚠️ Server is busy! Please try again later.",
-                style: TextStyle(fontSize: 16, color: Colors.red),
+              Text(
+                S.of(context).serverBusy,
+                style: const TextStyle(fontSize: 16, color: Colors.red),
               )
             else if (attendanceData.isEmpty)
-              const Text(
-                "No data available",
-                style: TextStyle(fontSize: 16),
-              )
-            else
-              Expanded(
-                child: Scrollbar(
-                  thumbVisibility: true,
-                  thickness: 8,
-                  radius: const Radius.circular(10),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
+                Text(
+                  S.of(context).noData,
+                  style: const TextStyle(fontSize: 16),
+                )
+              else
+                Expanded(
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    thickness: 8,
+                    radius: const Radius.circular(10),
                     child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTableTheme(
-                        data: DataTableThemeData(
-                          headingRowColor: MaterialStateColor.resolveWith(
-                              (states) => Colors.blue.shade100),
-                          dataRowColor: MaterialStateColor.resolveWith(
-                              (states) => Colors.white),
-                        ),
-                        child: DataTable(
-                          columnSpacing: 20,
-                          headingRowHeight: 50,
-                          dataRowHeight: 45,
-                          border: TableBorder.all(
-                            color: Colors.grey.shade300,
-                            width: 1,
+                      scrollDirection: Axis.vertical,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTableTheme(
+                          data: DataTableThemeData(
+                            headingRowColor: MaterialStateColor.resolveWith(
+                                    (states) => Colors.blue.shade100),
+                            dataRowColor: MaterialStateColor.resolveWith(
+                                    (states) => Colors.white),
                           ),
-                          columns: const [
-                            DataColumn(
-                                label: Text("Date",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold))),
-                            DataColumn(
-                                label: Text("First In",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold))),
-                            DataColumn(
-                                label: Text("Lunch Out",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold))),
-                            DataColumn(
-                                label: Text("Lunch In",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold))),
-                            DataColumn(
-                                label: Text("Last Out",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold))),
-                          ],
-                          rows: attendanceData.map<DataRow>((data) {
-                            return DataRow(
-                              cells: [
-                                DataCell(Text(formatDate(data["TrDt"]))),
-                                DataCell(Text(formatTime(data["FirstIn"]))),
-                                DataCell(Text(formatTime(data["LunchOUT"]))),
-                                DataCell(Text(formatTime(data["LunchIN"]))),
-                                DataCell(Text(formatTime(data["LastOut"]))),
-                              ],
-                            );
-                          }).toList(),
+                          child: DataTable(
+                            columnSpacing: 20,
+                            headingRowHeight: 50,
+                            dataRowHeight: 45,
+                            border: TableBorder.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                            columns: [
+                              DataColumn(
+                                  label: Text(S.of(context).date,
+                                      style: headerStyle)),
+                              DataColumn(
+                                  label: Text(S.of(context).firstIn,
+                                      style: headerStyle)),
+                              DataColumn(
+                                  label: Text(S.of(context).lunchOut,
+                                      style: headerStyle)),
+                              DataColumn(
+                                  label: Text(S.of(context).lunchIn,
+                                      style: headerStyle)),
+                              DataColumn(
+                                  label: Text(S.of(context).lastOut,
+                                      style: headerStyle)),
+                            ],
+                            rows: attendanceData.map<DataRow>((data) {
+                              return DataRow(
+                                cells: [
+                                  DataCell(Text(formatDate(data["TrDt"]))),
+                                  DataCell(Text(formatTime(data["FirstIn"]))),
+                                  DataCell(Text(formatTime(data["LunchOUT"]))),
+                                  DataCell(Text(formatTime(data["LunchIN"]))),
+                                  DataCell(Text(formatTime(data["LastOut"]))),
+                                ],
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../generated/l10n.dart';
 
 class Greetings extends StatefulWidget {
   const Greetings({Key? key}) : super(key: key);
@@ -9,71 +10,93 @@ class Greetings extends StatefulWidget {
 }
 
 class _GreetingsState extends State<Greetings> {
-  String fullName = "User"; // Default user name
+  String fullName = "User";
 
   @override
   void initState() {
     super.initState();
-    _fetchFullName(); // Fetch username when widget initializes
+    _fetchFullName();
   }
 
   Future<void> _fetchFullName() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      String storedName = prefs.getString("FullName") ?? "User";
-      List<String> nameParts = storedName.split(" ");
-      fullName =
-          nameParts.isNotEmpty ? nameParts.first : "User"; // Extract first name
+      final storedName = prefs.getString("FullName") ?? "User";
+      final nameParts = storedName.split(" ");
+      fullName = nameParts.isNotEmpty ? nameParts.first : "User";
     });
   }
 
-  // Public method to refresh the username (Call this after login)
   void refreshName() {
     _fetchFullName();
   }
 
+  String getGreeting(S loc) {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return loc.goodMorning(fullName);
+    if (hour < 17) return loc.goodAfternoon(fullName);
+    return loc.goodEvening(fullName);
+  }
+
+  String getMonthName(S loc, int month) {
+    switch (month) {
+      case 1:
+        return loc.monthJan;
+      case 2:
+        return loc.monthFeb;
+      case 3:
+        return loc.monthMar;
+      case 4:
+        return loc.monthApr;
+      case 5:
+        return loc.monthMay;
+      case 6:
+        return loc.monthJun;
+      case 7:
+        return loc.monthJul;
+      case 8:
+        return loc.monthAug;
+      case 9:
+        return loc.monthSep;
+      case 10:
+        return loc.monthOct;
+      case 11:
+        return loc.monthNov;
+      case 12:
+        return loc.monthDec;
+      default:
+        return "";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currDt = DateTime.now();
-    String greeting = currDt.hour < 12
-        ? "Morning, $fullName 👋"
-        : currDt.hour < 16
-            ? "Afternoon, $fullName 👋"
-            : "Evening, $fullName 👋";
+    final loc = S.of(context);
+    final now = DateTime.now();
+    final formattedDate =
+        "${now.day} ${getMonthName(loc, now.month)} ${now.year}";
 
-    return SizedBox(
-      height: 50,
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                greeting,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "${currDt.day} ${[
-                  'January',
-                  'February',
-                  'March',
-                  'April',
-                  'May',
-                  'June',
-                  'July',
-                  'August',
-                  'September',
-                  'October',
-                  'November',
-                  'December'
-                ][currDt.month - 1]} ${currDt.year}",
-                style: const TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
+    return Padding(
+      padding: const EdgeInsets.all(4.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // ✅ Column takes only needed space
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              getGreeting(loc),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              maxLines: 1, // ✅ prevent overflow
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              formattedDate,
+              style: const TextStyle(fontSize: 14),
+              maxLines: 1, // ✅ prevent overflow
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
