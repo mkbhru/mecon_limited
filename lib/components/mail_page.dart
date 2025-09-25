@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:enough_mail/enough_mail.dart';
 
 class MailPage extends StatefulWidget {
   const MailPage({super.key});
@@ -24,81 +25,169 @@ class _MailPageState extends State<MailPage> {
       error = null;
     });
 
+    ImapClient? client;
     try {
-      await Future.delayed(const Duration(seconds: 2));
+      debugPrint('🔥🔥 RELOAD: Starting IMAP connection to fetch real noticeboard emails...');
+      client = ImapClient(isLogEnabled: true);
+
+      debugPrint('Connecting to IMAP server...');
+      await client.connectToServer('imap.mgovcloud.in', 993, isSecure: true);
+      debugPrint('Connected to IMAP server');
+
+      debugPrint('Logging in...');
+      await client.login('manish@meconlimited.co.in', 'fTkTySejGn0Z');
+      debugPrint('Logged in successfully');
+
+      debugPrint('Looking for E-Notice Board folder...');
+
+      try {
+        await client.selectMailboxByPath('noticeboard@meconlimited.co.in/E-Notice Board');
+        debugPrint('Successfully selected E-Notice Board folder');
+      } catch (e) {
+        debugPrint('E-Notice Board folder not found, listing all mailboxes...');
+        final mailboxes = await client.listMailboxes();
+        debugPrint('Found ${mailboxes.length} mailboxes');
+
+        Mailbox? targetMailbox;
+        for (final mailbox in mailboxes) {
+          debugPrint('Mailbox: ${mailbox.name}, Path: ${mailbox.path}');
+          if (mailbox.name.toLowerCase().contains('notice') ||
+              mailbox.path.toLowerCase().contains('notice') ||
+              mailbox.name.toLowerCase().contains('noticeboard') ||
+              mailbox.path.toLowerCase().contains('noticeboard')) {
+            targetMailbox = mailbox;
+            debugPrint('Found notice-related mailbox: ${mailbox.name}');
+            break;
+          }
+        }
+
+        if (targetMailbox != null) {
+          debugPrint('Selecting mailbox: ${targetMailbox.name}');
+          await client.selectMailbox(targetMailbox);
+        } else {
+          debugPrint('No notice mailbox found, using INBOX as fallback');
+          await client.selectInbox();
+        }
+      }
+
+      debugPrint('Searching for messages...');
+      final searchResult = await client.searchMessages();
+      debugPrint('Search completed');
+
+      List<Map<String, dynamic>> fetchedEmails = [];
+
+      debugPrint('Fetching recent messages from E-Notice Board...');
+
+      // Get the most recent messages from the folder (assume 175 total as mentioned)
+      const totalMessages = 175; // Based on your folder info
+      debugPrint('Targeting E-Notice Board folder with ~$totalMessages messages');
+
+      // Calculate range to get the latest 20 messages
+      // final startMessage = totalMessages > 20 ? totalMessages - 19 : 1;
+      final startMessage = totalMessages > 10 ? totalMessages - 9 : 1;
+      final endMessage = totalMessages;
+
+      debugPrint('Fetching messages from $startMessage to $endMessage');
+
+      for (int i = endMessage; i >= startMessage; i--) {
+        try {
+          debugPrint('Fetching message $i');
+          final message = await client.fetchMessage(i, '(ENVELOPE BODY[TEXT])');
+
+          if (message.messages.isNotEmpty) {
+            final mimeMessage = message.messages.first;
+
+            String bodyText = 'No content available';
+            try {
+              // Try to get the plain text part first
+              String? plainText = mimeMessage.decodeTextPlainPart();
+
+              if (plainText != null && plainText.isNotEmpty) {
+                bodyText = plainText;
+              } else {
+                // Try HTML part and strip tags
+                String? htmlText = mimeMessage.decodeTextHtmlPart();
+                if (htmlText != null && htmlText.isNotEmpty) {
+                  bodyText = htmlText.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll('&nbsp;', ' ');
+                }
+              }
+
+              // Clean up encoding artifacts
+              bodyText = bodyText
+                  .replaceAll('=C2=A0', ' ')  // Non-breaking space
+                  .replaceAll('=E2=80=99', "'") // Right single quotation mark
+                  .replaceAll('=E2=80=98', "'") // Left single quotation mark
+                  .replaceAll('=E2=80=9C', '"') // Left double quotation mark
+                  .replaceAll('=E2=80=9D', '"') // Right double quotation mark
+                  .replaceAll('=20', ' ')       // Space
+                  .replaceAll('=\r\n', '')     // Soft line breaks
+                  .replaceAll('=\n', '')       // Soft line breaks
+                  .replaceAll(RegExp(r'--+=[_A-Za-z0-9]+.*?\n'), '') // Remove MIME boundaries
+                  .replaceAll(RegExp(r'Content-Type:.*?\n'), '')      // Remove headers
+                  .replaceAll(RegExp(r'Content-Transfer-Encoding:.*?\n'), '') // Remove headers
+                  .replaceAll(RegExp(r'\n\s*\n'), '\n') // Remove extra blank lines
+                  .trim();
+
+              // Don't truncate - show full content
+              if (bodyText.isEmpty || bodyText == 'No content available') {
+                bodyText = 'Email content could not be decoded properly.';
+              }
+            } catch (e) {
+              debugPrint('Error decoding message body: $e');
+              bodyText = 'Error loading email content.';
+            }
+
+            fetchedEmails.add({
+              'id': i,
+              'subject': mimeMessage.decodeSubject() ?? 'No Subject',
+              'from': mimeMessage.from?.first.email ?? 'noticeboard@meconlimited.co.in',
+              'date': mimeMessage.decodeDate() ?? DateTime.now(),
+              'body': bodyText,
+            });
+
+            debugPrint('Processed message $i: ${mimeMessage.decodeSubject()}');
+          }
+        } catch (e) {
+          debugPrint('Error fetching message $i: $e');
+        }
+      }
+
+      debugPrint('Disconnecting...');
+      await client.disconnect();
+      debugPrint('Disconnected successfully');
 
       setState(() {
-        emails = [
-          {
-            'id': 1,
-            'subject': 'Notice: Annual Meeting 2024',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(hours: 2)),
-            'body': 'Dear Employees,\n\nWe are pleased to announce the Annual Meeting for 2024 will be held on December 15, 2024, at 10:00 AM in the main conference hall.\n\nAgenda:\n1. Annual Performance Review\n2. Budget Discussion for 2025\n3. New Policies Implementation\n4. Q&A Session\n\nPlease confirm your attendance by December 10, 2024.\n\nBest regards,\nHR Department',
-          },
-          {
-            'id': 2,
-            'subject': 'Safety Guidelines Update',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(days: 1)),
-            'body': 'All Staff,\n\nUpdated safety guidelines have been implemented effective immediately. Please review the following:\n\n1. Hard hats are mandatory in construction areas\n2. Safety boots must be worn at all times on site\n3. Report any safety hazards immediately to your supervisor\n\nYour cooperation is essential for maintaining a safe work environment.\n\nSafety Department',
-          },
-          {
-            'id': 3,
-            'subject': 'Holiday Schedule - December 2024',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(days: 2)),
-            'body': 'Holiday Schedule for December 2024:\n\nDecember 25: Christmas Day - Office Closed\nDecember 26: Boxing Day - Office Closed\nDecember 31: New Year Eve - Half Day\nJanuary 1: New Year Day - Office Closed\n\nPlease plan your work accordingly.\n\nAdmin Department',
-          },
-          {
-            'id': 4,
-            'subject': 'Training Program Registration',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(days: 3)),
-            'body': 'Registration is now open for the Professional Development Training Program.\n\nProgram Details:\n- Duration: 3 weeks\n- Start Date: January 15, 2025\n- Topics: Leadership, Project Management, Technical Skills\n\nInterested employees should register by December 30, 2024.\n\nTraining Department',
-          },
-          {
-            'id': 5,
-            'subject': 'Parking Policy Changes',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(days: 5)),
-            'body': 'Effective December 1, 2024, new parking arrangements:\n\n- Reserved spots for senior management\n- Designated areas for visitors\n- Two-wheeler parking in Block A\n- Car parking in Block B\n\nPlease follow the new guidelines to avoid any inconvenience.\n\nFacilities Management',
-          },
-        ];
+        emails = fetchedEmails;
         isLoading = false;
+        error = null;
       });
+
+      debugPrint('Successfully loaded ${fetchedEmails.length} emails');
 
     } catch (e) {
-      setState(() {
-        error = 'Failed to connect to email server: ${e.toString()}';
-        isLoading = false;
+      debugPrint('IMAP Error: $e');
 
+      if (client != null) {
+        try {
+          await client.disconnect();
+        } catch (disconnectError) {
+          debugPrint('Error during disconnect: $disconnectError');
+        }
+      }
+
+      setState(() {
+        error = 'Failed to fetch emails: ${e.toString()}';
+        isLoading = false;
         emails = [
           {
             'id': 1,
-            'subject': 'Notice: Annual Meeting 2024',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(hours: 2)),
-            'body': 'Dear Employees,\n\nWe are pleased to announce the Annual Meeting for 2024 will be held on December 15, 2024, at 10:00 AM in the main conference hall.\n\nAgenda:\n1. Annual Performance Review\n2. Budget Discussion for 2025\n3. New Policies Implementation\n4. Q&A Session\n\nPlease confirm your attendance by December 10, 2024.\n\nBest regards,\nHR Department',
-          },
-          {
-            'id': 2,
-            'subject': 'Safety Guidelines Update',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(days: 1)),
-            'body': 'All Staff,\n\nUpdated safety guidelines have been implemented effective immediately. Please review the following:\n\n1. Hard hats are mandatory in construction areas\n2. Safety boots must be worn at all times on site\n3. Report any safety hazards immediately to your supervisor\n\nYour cooperation is essential for maintaining a safe work environment.\n\nSafety Department',
-          },
-          {
-            'id': 3,
-            'subject': 'Holiday Schedule - December 2024',
-            'from': 'noticeboard@meconlimited.co.in',
-            'date': DateTime.now().subtract(const Duration(days: 2)),
-            'body': 'Holiday Schedule for December 2024:\n\nDecember 25: Christmas Day - Office Closed\nDecember 26: Boxing Day - Office Closed\nDecember 31: New Year Eve - Half Day\nJanuary 1: New Year Day - Office Closed\n\nPlease plan your work accordingly.\n\nAdmin Department',
+            'subject': 'Connection Error - Mock Data',
+            'from': 'system@meconlimited.co.in',
+            'date': DateTime.now(),
+            'body': 'Could not connect to email server. This is mock data.\n\nError: ${e.toString()}',
           },
         ];
       });
-
-      debugPrint('IMAP connection failed: $e');
     }
   }
 
@@ -269,7 +358,22 @@ class _MailPageState extends State<MailPage> {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
-              Text(email['body']),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Text(
+                  email['body'],
+                  style: const TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
