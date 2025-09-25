@@ -1,72 +1,99 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../screens/login_screen.dart'; // Import your login page
+import 'package:provider/provider.dart';
+import '../theme_notifier.dart';
+import '../locale_notifier.dart';
+import 'package:mecon_limited/generated/l10n.dart'; // ✅ only this one
 
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
+    final localeNotifier = Provider.of<LocaleNotifier>(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      appBar: AppBar(title: Text(S.of(context).settings)),
       body: ListView(
         children: [
-          const ListTile(
-            leading: Icon(Icons.person),
-            title: Text("Account"),
-            subtitle: Text("Manage your account settings"),
-            trailing: Icon(Icons.arrow_forward_ios),
+          ListTile(
+            leading: const Icon(Icons.account_circle),
+            title: Text(S.of(context).account),
+            subtitle: Text(S.of(context).manageAccount),
           ),
-          const Divider(),
-
-          const ListTile(
-            leading: Icon(Icons.notifications),
-            title: Text("Notifications"),
-            subtitle: Text("Set your notification preferences"),
-            trailing: Icon(Icons.arrow_forward_ios),
+          ListTile(
+            leading: const Icon(Icons.notifications),
+            title: Text(S.of(context).notifications),
+            subtitle: Text(S.of(context).manageNotifications),
           ),
-          const Divider(),
-
-          const ListTile(
-            leading: Icon(Icons.privacy_tip),
-            title: Text("Privacy"),
-            subtitle: Text("Manage data and privacy settings"),
-            trailing: Icon(Icons.arrow_forward_ios),
+          ListTile(
+            leading: const Icon(Icons.lock),
+            title: Text(S.of(context).privacy),
+            subtitle: Text(S.of(context).managePrivacy),
           ),
-          const Divider(),
 
-          const ListTile(
-            leading: Icon(Icons.language),
-            title: Text("Language"),
-            subtitle: Text("Choose your preferred language"),
-            trailing: Icon(Icons.arrow_forward_ios),
+          // 🌐 Language Selector
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(S.of(context).language),
+            subtitle: Text(
+              localeNotifier.locale.languageCode == 'hi'
+                  ? S.of(context).hindi
+                  : S.of(context).english,
+            ),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(S.of(context).chooseLanguage),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RadioListTile<Locale>(
+                        title: Text(S.of(context).english),
+                        value: const Locale('en'),
+                        groupValue: localeNotifier.locale,
+                        onChanged: (value) {
+                          localeNotifier.setLocale(value!);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      RadioListTile<Locale>(
+                        title: Text(S.of(context).hindi),
+                        value: const Locale('hi'),
+                        groupValue: localeNotifier.locale,
+                        onChanged: (value) {
+                          localeNotifier.setLocale(value!);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-          const Divider(),
 
-          const ListTile(
-            leading: Icon(Icons.dark_mode),
-            title: Text("Dark Mode"),
-            subtitle: Text("Enable or disable dark mode"),
-            trailing: Switch(value: false, onChanged: null), // Dummy switch
+          // 🌙 Dark Mode Toggle
+          SwitchListTile(
+            secondary: const Icon(Icons.dark_mode),
+            title: Text(S.of(context).darkMode),
+            subtitle: Text(S.of(context).darkModeSubtitle),
+            value: themeNotifier.themeMode == ThemeMode.dark,
+            onChanged: (value) {
+              themeNotifier.setTheme(
+                  value ? ThemeMode.dark : ThemeMode.light);
+            },
           ),
-          const Divider(),
 
-          // Logout button
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text("Logout", style: TextStyle(color: Colors.red)),
-            onTap: () async {
-              // Delete token and redirect to login page
-              final SharedPreferences prefs =
-                  await SharedPreferences.getInstance();
-              await prefs.remove('token'); // Remove saved token
-
-              // Navigate to login page and remove history
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (Route<dynamic> route) => false,
-              );
+            title: Text(
+              S.of(context).logout,
+              style: const TextStyle(color: Colors.red),
+            ),
+            onTap: () {
+              // TODO: add logout logic
             },
           ),
         ],
