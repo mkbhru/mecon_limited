@@ -100,17 +100,27 @@ class _MailPageState extends State<MailPage> with AutomaticKeepAliveClientMixin 
         }
       }
 
-      debugPrint('Searching for messages...');
-      await client.searchMessages();
-      debugPrint('Search completed');
+      // Search for all messages to get the total count
+      debugPrint('Searching for all messages...');
+      final searchResult = await client.searchMessages();
+      final totalMessages = searchResult.matchingSequence?.length ?? 0;
+
+      debugPrint('Mailbox contains $totalMessages messages');
+
+      if (totalMessages == 0) {
+        debugPrint('No messages found in mailbox');
+        await client.disconnect();
+        setState(() {
+          emails = [];
+          isLoading = false;
+          isRefreshing = false;
+        });
+        return;
+      }
 
       List<Map<String, dynamic>> fetchedEmails = [];
 
       debugPrint('Fetching recent messages from E-Notice Board (subjects only for performance)...');
-
-      // Get the most recent messages from the folder (assume 175 total as mentioned)
-      const totalMessages = 175; // Based on your folder info
-      debugPrint('Targeting E-Notice Board folder with ~$totalMessages messages');
 
       // Determine how many emails to fetch
       final emailsToFetch = isInitialLoad ? 10 : emailsPerFetch;
