@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navbar.dart'; // Import the BottomNavBar widget
+import '../services/user_preferences_manager.dart';
 import './home_page.dart'; // Your home content
 import './notifications_page.dart'; // Notifications content
 import './notes_page.dart'; // Notes content
 import 'settings_page.dart'; // Settings content
 import './chat_page.dart';
+import './admin_page.dart';
 import 'package:double_back_to_close/double_back_to_close.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,15 +17,41 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _prefsManager = UserPreferencesManager.instance;
   int _selectedIndex = 0;
+  bool _isAdmin = false;
 
-  final List<Widget> _pages = [
-    HomePage(),
-    NotificationsPage(),
-    NotesPage(),
-    ChatPage(),
-    SettingsPage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await _prefsManager.isAdmin();
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+      });
+    }
+  }
+
+  List<Widget> get _pages {
+    final pages = [
+      HomePage(),
+      const NotificationsPage(),
+      const NotesPage(),
+      const ChatPage(),
+      SettingsPage(),
+    ];
+
+    // Add admin page if user is admin
+    if (_isAdmin) {
+      pages.add(const AdminPage());
+    }
+
+    return pages;
+  }
 
   void _onTabSelected(int index) {
     setState(() {
@@ -49,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavBar(
         currentIndex: _selectedIndex,
         onTabSelected: _onTabSelected,
+        isAdmin: _isAdmin,
       ),
     );
   }

@@ -8,20 +8,50 @@ class MailPage extends StatefulWidget {
   State<MailPage> createState() => _MailPageState();
 }
 
-class _MailPageState extends State<MailPage> {
+class _MailPageState extends State<MailPage> with AutomaticKeepAliveClientMixin {
+  // Static cache to persist data across widget rebuilds
+  static List<Map<String, dynamic>>? _cachedEmails;
+  static bool _hasInitiallyLoaded = false;
+
   List<Map<String, dynamic>> emails = [];
   bool isLoading = true;
+  bool isRefreshing = false;
   String? error;
+  static const int maxEmails = 50; // Cap at 50 emails
+  static const int emailsPerFetch = 10; // Fetch 10 at a time
+
+  // Boolean to enable/disable full body viewing
+  static const bool enableFullBodyView = false;
+
+  @override
+  bool get wantKeepAlive => true; // Keep state alive when navigating away
 
   @override
   void initState() {
     super.initState();
-    fetchEmails();
+
+    // Check if we have cached data
+    if (_hasInitiallyLoaded && _cachedEmails != null) {
+      // Use cached data immediately
+      setState(() {
+        emails = _cachedEmails!;
+        isLoading = false;
+      });
+      debugPrint('📦 Loaded ${emails.length} cached emails');
+    } else {
+      // First time load
+      fetchEmails(isInitialLoad: true);
+    }
   }
 
-  Future<void> fetchEmails() async {
+  Future<void> fetchEmails({bool isInitialLoad = false}) async {
+    // If it's a refresh (not initial load), keep existing content visible
     setState(() {
-      isLoading = true;
+      if (isInitialLoad) {
+        isLoading = true;
+      } else {
+        isRefreshing = true;
+      }
       error = null;
     });
 
@@ -71,109 +101,49 @@ class _MailPageState extends State<MailPage> {
       }
 
       debugPrint('Searching for messages...');
-      final searchResult = await client.searchMessages();
+      await client.searchMessages();
       debugPrint('Search completed');
 
       List<Map<String, dynamic>> fetchedEmails = [];
 
-      debugPrint('Fetching recent messages from E-Notice Board...');
+      debugPrint('Fetching recent messages from E-Notice Board (subjects only for performance)...');
 
       // Get the most recent messages from the folder (assume 175 total as mentioned)
       const totalMessages = 175; // Based on your folder info
       debugPrint('Targeting E-Notice Board folder with ~$totalMessages messages');
 
-      // Calculate range to get the latest 20 messages
-      // final startMessage = totalMessages > 20 ? totalMessages - 19 : 1;
-      final startMessage = totalMessages > 10 ? totalMessages - 9 : 1;
+      // Determine how many emails to fetch
+      final emailsToFetch = isInitialLoad ? 10 : emailsPerFetch;
+      final startMessage = totalMessages > emailsToFetch ? totalMessages - (emailsToFetch - 1) : 1;
       final endMessage = totalMessages;
 
-      debugPrint('Fetching messages from $startMessage to $endMessage');
+      debugPrint('Fetching latest $emailsToFetch messages (subjects only) from $startMessage to $endMessage');
+
+      // Get existing email IDs to avoid duplicates
+      final existingEmailIds = emails.map((e) => e['id'] as int).toSet();
 
       for (int i = endMessage; i >= startMessage; i--) {
+        // Skip if already exists
+        if (existingEmailIds.contains(i)) {
+          debugPrint('Skipping message $i (already fetched)');
+          continue;
+        }
+
         try {
-          debugPrint('Fetching message $i');
-          final message = await client.fetchMessage(i, '(ENVELOPE BODY[TEXT])');
+          debugPrint('Fetching message $i (subject only)');
+          // Fetch only ENVELOPE for faster loading (subject, from, date)
+          final message = await client.fetchMessage(i, '(ENVELOPE)');
 
           if (message.messages.isNotEmpty) {
             final mimeMessage = message.messages.first;
-
-            String bodyText = 'No content available';
-            try {
-              // First try to get decoded content from the library
-              String? plainText = mimeMessage.decodeTextPlainPart();
-              String? htmlText = mimeMessage.decodeTextHtmlPart();
-
-              if (plainText != null && plainText.isNotEmpty && !plainText.contains('Content-Type:')) {
-                bodyText = plainText;
-              } else if (htmlText != null && htmlText.isNotEmpty && !htmlText.contains('Content-Type:')) {
-                // Parse HTML and extract clean text
-                bodyText = htmlText
-                    .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-                    .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '\n')
-                    .replaceAll(RegExp(r'</div>', caseSensitive: false), '')
-                    .replaceAll(RegExp(r'<[^>]*>'), '')
-                    .replaceAll('&nbsp;', ' ')
-                    .replaceAll('&amp;', '&')
-                    .replaceAll('&lt;', '<')
-                    .replaceAll('&gt;', '>');
-              } else {
-                // Manual parsing for multipart content
-                debugPrint('Manual parsing required for message');
-                String rawContent = (message.messages.first.body ?? '').toString();
-
-                // Look for plain text content
-                RegExp plainTextRegex = RegExp(r'Content-Type: text/plain.*?\n\n(.*?)(?=--|\Z)', dotAll: true);
-                Match? plainMatch = plainTextRegex.firstMatch(rawContent);
-
-                if (plainMatch != null) {
-                  bodyText = plainMatch.group(1)?.trim() ?? '';
-                } else {
-                  // Look for HTML content and extract
-                  RegExp htmlRegex = RegExp(r'Content-Type: text/html.*?\n\n(.*?)(?=--|\Z)', dotAll: true);
-                  Match? htmlMatch = htmlRegex.firstMatch(rawContent);
-
-                  if (htmlMatch != null) {
-                    String htmlContent = htmlMatch.group(1)?.trim() ?? '';
-                    bodyText = htmlContent
-                        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-                        .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '\n')
-                        .replaceAll(RegExp(r'</div>', caseSensitive: false), '')
-                        .replaceAll(RegExp(r'<[^>]*>'), '')
-                        .replaceAll('&nbsp;', ' ')
-                        .replaceAll('&amp;', '&')
-                        .replaceAll('&lt;', '<')
-                        .replaceAll('&gt;', '>');
-                  }
-                }
-              }
-
-              // Clean up quoted-printable encoding
-              bodyText = bodyText
-                  .replaceAll('=C2=A0', ' ')
-                  .replaceAll('=E2=80=99', "'")
-                  .replaceAll('=E2=80=98', "'")
-                  .replaceAll('=E2=80=9C', '"')
-                  .replaceAll('=E2=80=9D', '"')
-                  .replaceAll('=20', ' ')
-                  .replaceAll('=\r\n', '')
-                  .replaceAll('=\n', '')
-                  .replaceAll(RegExp(r'\n\s*\n\s*\n'), '\n\n') // Clean up multiple line breaks
-                  .trim();
-
-              if (bodyText.isEmpty || bodyText == 'No content available') {
-                bodyText = 'Email content could not be decoded properly.';
-              }
-            } catch (e) {
-              debugPrint('Error decoding message body: $e');
-              bodyText = 'Error loading email content.';
-            }
 
             fetchedEmails.add({
               'id': i,
               'subject': mimeMessage.decodeSubject() ?? 'No Subject',
               'from': mimeMessage.from?.first.email ?? 'noticeboard@meconlimited.co.in',
               'date': mimeMessage.decodeDate() ?? DateTime.now(),
-              'body': bodyText,
+              'body': 'Click to view full content', // Placeholder, will load on demand
+              'bodyLoaded': false, // Flag to indicate body needs to be loaded
             });
 
             debugPrint('Processed message $i: ${mimeMessage.decodeSubject()}');
@@ -188,12 +158,30 @@ class _MailPageState extends State<MailPage> {
       debugPrint('Disconnected successfully');
 
       setState(() {
-        emails = fetchedEmails;
+        if (isInitialLoad) {
+          // On initial load, just set the emails
+          emails = fetchedEmails;
+        } else {
+          // On refresh, add new emails at the top and maintain cap
+          emails = [...fetchedEmails, ...emails];
+
+          // Cap at maxEmails (50)
+          if (emails.length > maxEmails) {
+            emails = emails.sublist(0, maxEmails);
+            debugPrint('Capped emails list at $maxEmails');
+          }
+        }
+
         isLoading = false;
+        isRefreshing = false;
         error = null;
+
+        // Update static cache
+        _cachedEmails = List.from(emails);
+        _hasInitiallyLoaded = true;
       });
 
-      debugPrint('Successfully loaded ${fetchedEmails.length} emails');
+      debugPrint('Successfully loaded ${fetchedEmails.length} new emails, total: ${emails.length}');
 
     } catch (e) {
       debugPrint('IMAP Error: $e');
@@ -209,28 +197,42 @@ class _MailPageState extends State<MailPage> {
       setState(() {
         error = 'Failed to fetch emails: ${e.toString()}';
         isLoading = false;
-        emails = [
-          {
-            'id': 1,
-            'subject': 'Connection Error - Mock Data',
-            'from': 'system@meconlimited.co.in',
-            'date': DateTime.now(),
-            'body': 'Could not connect to email server. This is mock data.\n\nError: ${e.toString()}',
-          },
-        ];
+        isRefreshing = false;
+
+        // Only set mock data on initial load failure
+        if (isInitialLoad && !_hasInitiallyLoaded) {
+          emails = [
+            {
+              'id': 1,
+              'subject': 'Connection Error - Mock Data',
+              'from': 'system@meconlimited.co.in',
+              'date': DateTime.now(),
+              'body': 'Could not connect to email server. This is mock data.\n\nError: ${e.toString()}',
+            },
+          ];
+
+          // Cache the error state
+          _cachedEmails = List.from(emails);
+          _hasInitiallyLoaded = true;
+        }
+        // On refresh failure, keep existing emails
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
+    // Show full-screen loading only on initial load
+    if (isLoading && !isRefreshing) {
       return const Center(
         child: CircularProgressIndicator(),
       );
     }
 
-    if (error != null) {
+    // Show error only if it occurred on initial load and no emails exist
+    if (error != null && emails.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -256,7 +258,7 @@ class _MailPageState extends State<MailPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: fetchEmails,
+              onPressed: () => fetchEmails(isInitialLoad: true),
               child: const Text('Retry'),
             ),
           ],
@@ -264,7 +266,7 @@ class _MailPageState extends State<MailPage> {
       );
     }
 
-    if (emails.isEmpty) {
+    if (emails.isEmpty && !isRefreshing) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -281,7 +283,7 @@ class _MailPageState extends State<MailPage> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: fetchEmails,
+              onPressed: () => fetchEmails(isInitialLoad: true),
               child: const Text('Refresh'),
             ),
           ],
@@ -290,58 +292,70 @@ class _MailPageState extends State<MailPage> {
     }
 
     return RefreshIndicator(
-      onRefresh: fetchEmails,
-      child: ListView.builder(
-        itemCount: emails.length,
-        itemBuilder: (context, index) {
-          final email = emails[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Theme.of(context).primaryColor,
-                child: Text(
-                  email['subject'].toString().isNotEmpty
-                      ? email['subject'].toString()[0].toUpperCase()
-                      : 'N',
-                  style: const TextStyle(color: Colors.white),
+      onRefresh: () => fetchEmails(isInitialLoad: false),
+      child: Stack(
+        children: [
+          ListView.builder(
+            itemCount: emails.length,
+            itemBuilder: (context, index) {
+              final email = emails[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  leading: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Theme.of(context).primaryColor,
+                    child: Text(
+                      email['subject'].toString().isNotEmpty
+                          ? email['subject'].toString()[0].toUpperCase()
+                          : 'N',
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                  title: Text(
+                    _truncateSubject(email['subject']),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatDate(email['date']),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                  trailing: enableFullBodyView
+                      ? Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey[400],
+                        )
+                      : null,
+                  onTap: enableFullBodyView
+                      ? () => _showEmailDetail(context, email)
+                      : null,
                 ),
+              );
+            },
+          ),
+          // Show compact loading indicator at top during refresh
+          if (isRefreshing)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SizedBox(
+                height: 3,
+                child: LinearProgressIndicator(),
               ),
-              title: Text(
-                email['subject'],
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'From: ${email['from']}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDate(email['date']),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-              trailing: Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey[400],
-              ),
-              onTap: () => _showEmailDetail(context, email),
             ),
-          );
-        },
+        ],
       ),
     );
   }
@@ -361,59 +375,158 @@ class _MailPageState extends State<MailPage> {
     }
   }
 
+  String _truncateSubject(String subject) {
+    final words = subject.split(' ');
+    if (words.length <= 30) {
+      return subject;
+    }
+    return '${words.take(30).join(' ')}...';
+  }
+
+  Future<void> _loadEmailBody(Map<String, dynamic> email) async {
+    // If body is already loaded, skip
+    if (email['bodyLoaded'] == true) return;
+
+    ImapClient? client;
+    try {
+      debugPrint('Loading full body for message ${email['id']}...');
+      client = ImapClient(isLogEnabled: false);
+
+      await client.connectToServer('imap.mgovcloud.in', 993, isSecure: true);
+      await client.login('manish@meconlimited.co.in', 'fTkTySejGn0Z');
+
+      // Select the mailbox
+      try {
+        await client.selectMailboxByPath('noticeboard@meconlimited.co.in/E-Notice Board');
+      } catch (e) {
+        await client.selectInbox();
+      }
+
+      // Fetch full message with body
+      final message = await client.fetchMessage(email['id'], '(BODY[TEXT])');
+
+      if (message.messages.isNotEmpty) {
+        final mimeMessage = message.messages.first;
+        String bodyText = 'No content available';
+
+        try {
+          String? plainText = mimeMessage.decodeTextPlainPart();
+          String? htmlText = mimeMessage.decodeTextHtmlPart();
+
+          if (plainText != null && plainText.isNotEmpty) {
+            bodyText = plainText;
+          } else if (htmlText != null && htmlText.isNotEmpty) {
+            bodyText = htmlText
+                .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+                .replaceAll(RegExp(r'<[^>]*>'), '')
+                .replaceAll('&nbsp;', ' ')
+                .replaceAll('&amp;', '&')
+                .replaceAll('&lt;', '<')
+                .replaceAll('&gt;', '>')
+                .trim();
+          }
+
+          bodyText = bodyText
+              .replaceAll('=C2=A0', ' ')
+              .replaceAll('=E2=80=99', "'")
+              .replaceAll('=20', ' ')
+              .replaceAll('=\r\n', '')
+              .replaceAll('=\n', '')
+              .trim();
+        } catch (e) {
+          debugPrint('Error decoding body: $e');
+        }
+
+        email['body'] = bodyText;
+        email['bodyLoaded'] = true;
+      }
+
+      await client.disconnect();
+    } catch (e) {
+      debugPrint('Error loading email body: $e');
+      email['body'] = 'Error loading content. Please try again.';
+    }
+  }
+
   void _showEmailDetail(BuildContext context, Map<String, dynamic> email) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          email['subject'],
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'From: ${email['from']}',
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Date: ${_formatDate(email['date'])}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Text(
-                  email['body'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text(
+              email['subject'],
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'From: ${email['from']}',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Date: ${_formatDate(email['date'])}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: email['bodyLoaded'] == false
+                        ? Column(
+                            children: [
+                              const CircularProgressIndicator(),
+                              const SizedBox(height: 12),
+                              const Text('Loading email content...'),
+                              FutureBuilder(
+                                future: _loadEmailBody(email),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.done) {
+                                    // Trigger rebuild after loading
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      if (context.mounted) {
+                                        setState(() {});
+                                      }
+                                    });
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
+                          )
+                        : Text(
+                            email['body'],
+                            style: const TextStyle(
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
               ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
