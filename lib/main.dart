@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/HomeScreen.dart';
 import 'services/auth_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'services/user_preferences_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize the preferences manager
+  await UserPreferencesManager.instance.init();
+
+  // Check if user is logged in
   bool loggedIn = await AuthService().isLoggedIn();
-  final prefs = await SharedPreferences.getInstance();
-   String? user = await prefs.getString('token');
-  print("loggen In $loggedIn $user");
-  if(user == null) loggedIn = false;
-  // loggedIn = true;
+
   runApp(MyApp(isLoggedIn: loggedIn));
 }
 

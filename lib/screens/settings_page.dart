@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../screens/login_screen.dart'; // Import your login page
+import '../screens/login_screen.dart';
+import '../services/user_preferences_manager.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  SettingsPage({super.key});
+
+  final _prefsManager = UserPreferencesManager.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -56,17 +58,17 @@ class SettingsPage extends StatelessWidget {
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text("Logout", style: TextStyle(color: Colors.red)),
             onTap: () async {
-              // Delete token and redirect to login page
-              final SharedPreferences prefs =
-                  await SharedPreferences.getInstance();
-              await prefs.remove('token'); // Remove saved token
+              // Logout using preferences manager
+              await _prefsManager.logout();
 
               // Navigate to login page and remove history
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (Route<dynamic> route) => false,
-              );
+              if (context.mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (Route<dynamic> route) => false,
+                );
+              }
             },
           ),
         ],
