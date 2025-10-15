@@ -99,36 +99,67 @@ class _MailPageState extends State<MailPage> {
 
             String bodyText = 'No content available';
             try {
-              // Try to get the plain text part first
+              // First try to get decoded content from the library
               String? plainText = mimeMessage.decodeTextPlainPart();
+              String? htmlText = mimeMessage.decodeTextHtmlPart();
 
-              if (plainText != null && plainText.isNotEmpty) {
+              if (plainText != null && plainText.isNotEmpty && !plainText.contains('Content-Type:')) {
                 bodyText = plainText;
+              } else if (htmlText != null && htmlText.isNotEmpty && !htmlText.contains('Content-Type:')) {
+                // Parse HTML and extract clean text
+                bodyText = htmlText
+                    .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+                    .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '\n')
+                    .replaceAll(RegExp(r'</div>', caseSensitive: false), '')
+                    .replaceAll(RegExp(r'<[^>]*>'), '')
+                    .replaceAll('&nbsp;', ' ')
+                    .replaceAll('&amp;', '&')
+                    .replaceAll('&lt;', '<')
+                    .replaceAll('&gt;', '>');
               } else {
-                // Try HTML part and strip tags
-                String? htmlText = mimeMessage.decodeTextHtmlPart();
-                if (htmlText != null && htmlText.isNotEmpty) {
-                  bodyText = htmlText.replaceAll(RegExp(r'<[^>]*>'), '').replaceAll('&nbsp;', ' ');
+                // Manual parsing for multipart content
+                debugPrint('Manual parsing required for message');
+                String rawContent = (message.messages.first.body ?? '').toString();
+
+                // Look for plain text content
+                RegExp plainTextRegex = RegExp(r'Content-Type: text/plain.*?\n\n(.*?)(?=--|\Z)', dotAll: true);
+                Match? plainMatch = plainTextRegex.firstMatch(rawContent);
+
+                if (plainMatch != null) {
+                  bodyText = plainMatch.group(1)?.trim() ?? '';
+                } else {
+                  // Look for HTML content and extract
+                  RegExp htmlRegex = RegExp(r'Content-Type: text/html.*?\n\n(.*?)(?=--|\Z)', dotAll: true);
+                  Match? htmlMatch = htmlRegex.firstMatch(rawContent);
+
+                  if (htmlMatch != null) {
+                    String htmlContent = htmlMatch.group(1)?.trim() ?? '';
+                    bodyText = htmlContent
+                        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+                        .replaceAll(RegExp(r'<div[^>]*>', caseSensitive: false), '\n')
+                        .replaceAll(RegExp(r'</div>', caseSensitive: false), '')
+                        .replaceAll(RegExp(r'<[^>]*>'), '')
+                        .replaceAll('&nbsp;', ' ')
+                        .replaceAll('&amp;', '&')
+                        .replaceAll('&lt;', '<')
+                        .replaceAll('&gt;', '>');
+                  }
                 }
               }
 
-              // Clean up encoding artifacts
+              // Clean up quoted-printable encoding
               bodyText = bodyText
-                  .replaceAll('=C2=A0', ' ')  // Non-breaking space
-                  .replaceAll('=E2=80=99', "'") // Right single quotation mark
-                  .replaceAll('=E2=80=98', "'") // Left single quotation mark
-                  .replaceAll('=E2=80=9C', '"') // Left double quotation mark
-                  .replaceAll('=E2=80=9D', '"') // Right double quotation mark
-                  .replaceAll('=20', ' ')       // Space
-                  .replaceAll('=\r\n', '')     // Soft line breaks
-                  .replaceAll('=\n', '')       // Soft line breaks
-                  .replaceAll(RegExp(r'--+=[_A-Za-z0-9]+.*?\n'), '') // Remove MIME boundaries
-                  .replaceAll(RegExp(r'Content-Type:.*?\n'), '')      // Remove headers
-                  .replaceAll(RegExp(r'Content-Transfer-Encoding:.*?\n'), '') // Remove headers
-                  .replaceAll(RegExp(r'\n\s*\n'), '\n') // Remove extra blank lines
+                  .replaceAll('=C2=A0', ' ')
+                  .replaceAll('=E2=80=99', "'")
+                  .replaceAll('=E2=80=98', "'")
+                  .replaceAll('=E2=80=9C', '"')
+                  .replaceAll('=E2=80=9D', '"')
+                  .replaceAll('=20', ' ')
+                  .replaceAll('=\r\n', '')
+                  .replaceAll('=\n', '')
+                  .replaceAll(RegExp(r'\n\s*\n\s*\n'), '\n\n') // Clean up multiple line breaks
                   .trim();
 
-              // Don't truncate - show full content
               if (bodyText.isEmpty || bodyText == 'No content available') {
                 bodyText = 'Email content could not be decoded properly.';
               }
