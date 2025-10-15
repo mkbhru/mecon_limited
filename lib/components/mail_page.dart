@@ -205,7 +205,21 @@ class _MailPageState extends State<MailPage> with AutomaticKeepAliveClientMixin 
       }
 
       setState(() {
-        error = 'Failed to fetch emails: ${e.toString()}';
+        // Determine error type
+        String errorMessage = 'Failed to fetch emails';
+        if (e.toString().contains('SocketException') ||
+            e.toString().contains('Failed host lookup') ||
+            e.toString().contains('NetworkException')) {
+          errorMessage = 'No internet connection';
+        } else if (e.toString().contains('TimeoutException') ||
+                   e.toString().contains('timeout')) {
+          errorMessage = 'Connection timeout';
+        } else if (e.toString().contains('Connection refused') ||
+                   e.toString().contains('Connection closed')) {
+          errorMessage = 'Unable to connect to mail server';
+        }
+
+        error = errorMessage;
         isLoading = false;
         isRefreshing = false;
 
@@ -214,16 +228,31 @@ class _MailPageState extends State<MailPage> with AutomaticKeepAliveClientMixin 
           emails = [
             {
               'id': 1,
-              'subject': 'Connection Error - Mock Data',
+              'subject': errorMessage,
               'from': 'system@meconlimited.co.in',
               'date': DateTime.now(),
-              'body': 'Could not connect to email server. This is mock data.\n\nError: ${e.toString()}',
+              'body': 'Could not connect to email server.\n\n$errorMessage',
             },
           ];
 
           // Cache the error state
           _cachedEmails = List.from(emails);
           _hasInitiallyLoaded = true;
+        } else if (!isInitialLoad) {
+          // Show snackbar on refresh failure
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.wifi_off, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(errorMessage),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.red[700],
+            ),
+          );
         }
         // On refresh failure, keep existing emails
       });

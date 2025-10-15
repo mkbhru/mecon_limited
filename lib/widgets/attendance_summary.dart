@@ -34,18 +34,58 @@ class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeep
     setState(() => isLoading = true);
 
     try {
-      final data = await ApiService().fetchAttendance();
+      final data = await ApiService().fetchAttendance().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => null,
+      );
       if (mounted) {
         setState(() {
           attendanceData = data;
           isLoading = false;
         });
+
+        // Show success message if data was fetched
+        if (data != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Attendance refreshed'),
+              duration: Duration(seconds: 1),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
+      debugPrint('Error fetching attendance: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
         });
+
+        // Show error message
+        String errorMessage = 'Failed to refresh attendance';
+        if (e.toString().contains('SocketException') ||
+            e.toString().contains('Failed host lookup') ||
+            e.toString().contains('NetworkException')) {
+          errorMessage = 'No internet connection';
+        } else if (e.toString().contains('TimeoutException') ||
+                   e.toString().contains('timeout')) {
+          errorMessage = 'Connection timeout';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.wifi_off, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(errorMessage),
+              ],
+            ),
+            duration: const Duration(seconds: 3),
+            backgroundColor: Colors.red[700],
+          ),
+        );
       }
     }
   }

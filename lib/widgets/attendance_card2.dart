@@ -28,17 +28,27 @@ class _AttendanceCardState extends State<AttendanceCard> {
   }
 
   Future<void> fetchFirstPunch() async {
-    final punches = await ApiService().fetchLatestPunches();
-    if (mounted) {
-      setState(() {
-        if (punches != null && punches.isNotEmpty) {
-          // Get the first punch (check-in time)
-          final firstPunch = punches[0];
-          final punchTime = firstPunch['punchTime'];
-          time = punchTime ?? "--:--";
-        }
-        isLoading = false;
-      });
+    try {
+      final punches = await ApiService().fetchLatestPunches();
+      if (mounted) {
+        setState(() {
+          if (punches != null && punches.isNotEmpty) {
+            // Get the first punch (check-in time)
+            final firstPunch = punches[0];
+            final punchTime = firstPunch['punchTime'];
+            time = punchTime ?? "--:--";
+          }
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching first punch: $e');
+      if (mounted) {
+        setState(() {
+          time = "--:--";
+          isLoading = false;
+        });
+      }
     }
   }
 
