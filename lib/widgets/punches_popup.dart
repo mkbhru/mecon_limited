@@ -39,7 +39,7 @@ class PunchesPopupState extends State<PunchesPopup> {
 
   String formatTimestamp(String? date, String? time) {
     if (date == null || time == null) return "N/A";
-    return "$date $time";
+    return "$date | $time";
   }
 
   @override
@@ -153,7 +153,7 @@ class PunchesPopupState extends State<PunchesPopup> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        '${formatTimestamp(punch['punchDate'], punch['punchTime'])} | ${punch['employeeId']} | ${punch['companyLocation']} | DEV:${punch['deviceId']}',
+                                        formatTimestamp(punch['punchDate'], punch['punchTime']),
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.black87,

@@ -10,24 +10,43 @@ class AttendanceSummary extends StatefulWidget {
   AttendanceSummaryState createState() => AttendanceSummaryState();
 }
 
-class AttendanceSummaryState extends State<AttendanceSummary> {
+class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeepAliveClientMixin {
   Map<String, dynamic>? attendanceData;
-  bool isLoading = true;
+  bool isLoading = false;
+  bool _hasLoadedOnce = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    fetchAttendanceData();
+    // Load data only on first init
+    if (!_hasLoadedOnce) {
+      fetchAttendanceData();
+      _hasLoadedOnce = true;
+    }
   }
 
   Future<void> fetchAttendanceData() async {
+    if (!mounted) return;
+
     setState(() => isLoading = true);
-    final data = await ApiService().fetchAttendance();
-    if (mounted) {
-      setState(() {
-        attendanceData = data;
-        isLoading = false;
-      });
+
+    try {
+      final data = await ApiService().fetchAttendance();
+      if (mounted) {
+        setState(() {
+          attendanceData = data;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -70,13 +89,17 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: Colors.grey[200],
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color: Colors.grey.withValues(alpha: 0.3),
             spreadRadius: 2,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -85,120 +108,97 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
       ),
       padding: const EdgeInsets.all(12.0),
       margin: const EdgeInsets.all(8),
-      child: isLoading
-          ? SizedBox(height: 240,child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "fetching live data..",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const Center(child: CircularProgressIndicator()),
-            ],
-          ))
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  headerText(attendanceData?["TrDt"] ?? ""),
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : attendanceData == null
-                        ? const Center(child: Text("Server is Busy!"))
-                        : LayoutBuilder(
-                            builder: (context, constraints) {
-                              // Calculate responsive aspect ratio based on screen width
-                              double screenWidth = constraints.maxWidth;
-                              double aspectRatio = screenWidth < 350 ? 1.4 : 1.6;
-
-                              return GridView.count(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: aspectRatio,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: [
-                              AttendanceCard(
-                                icon: Icons.login,
-                                iconColor: Colors.green,
-                                title: "Check In",
-                                time: formatTime(attendanceData?["FirstIn"]),
-                                subtitle:
-                                    attendanceData?["InStatusAct"] ?? "N/A",
-                                points: "+150 pt",
-                                pointsColor: Colors.green,
-                              ),
-                              AttendanceCard(
-                                icon: Icons.logout,
-                                iconColor: Colors.pinkAccent,
-                                title: "Check Out",
-                                time: formatTime(attendanceData?["LastOut"]),
-                                subtitle:
-                                    attendanceData?["OutStatusAct"] ?? "N/A",
-                                points: "+100 pt",
-                                pointsColor: Colors.green,
-                              ),
-                              AttendanceCard(
-                                icon: Icons.timer,
-                                iconColor: Colors.purple,
-                                title: "Lunch Out",
-                                time: formatTime(attendanceData?["LunchOUT"]),
-                                subtitle: "On time",
-                                points: "",
-                                pointsColor: Colors.transparent,
-                              ),
-                              AttendanceCard(
-                                icon: Icons.timelapse,
-                                iconColor: Colors.brown,
-                                title: "Lunch In",
-                                time: formatTime(attendanceData?["LunchIN"]),
-                                subtitle: "On time",
-                                points: "+\$120.00",
-                                pointsColor: Colors.green,
-                              ),
-                                ],
-                              );
-                            },
-                          ),
-                const SizedBox(height: 12),
-                Center(
-                  child: GestureDetector(
-                    onTap: showPunchesPopup,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            headerText(attendanceData?["TrDt"] ?? ""),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            child: isLoading
+                ? const SizedBox(
+                    height: 80,
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : attendanceData == null
+                    ? const SizedBox(
+                        height: 80,
+                        child: Center(
+                          child: Text("Server is Busy!"),
+                        ),
+                      )
+                    : Row(
+                        key: const ValueKey('attendance_row'),
                         children: [
-                          Icon(
-                            Icons.access_time_filled,
-                            color: Colors.blue,
-                            size: 18,
+                          Expanded(
+                            child: AttendanceCard(
+                              icon: Icons.login,
+                              iconColor: Colors.green,
+                              title: "Check In",
+                            ),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            "Today's Punch Log",
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: showPunchesPopup,
+                              child: Card(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 4,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(10.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.access_time_filled,
+                                            color: Colors.blue,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              "Punch Log",
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        "View Details",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          ),
+        ],
+      ),
     );
   }
 }

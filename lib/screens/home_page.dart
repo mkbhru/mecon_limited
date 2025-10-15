@@ -22,7 +22,10 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   // ✅ Define the list of features
   final List<Feature> features = [
     Feature(title: 'Attendance', iconPath: 'assets/icons/attendance.png'),
@@ -103,9 +106,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     return Scaffold(
       appBar: AppBar(
-        title: Greetings(),
+        title: const Greetings(),
         actions: [
           Padding(
             padding: const EdgeInsets.all(10.0),
@@ -115,34 +120,40 @@ class _HomePageState extends State<HomePage> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                AttendanceSummary(key: _attendanceKey),
-                GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: features.length,
-                  itemBuilder: (context, index) {
+        strokeWidth: 2.5,
+        displacement: 40,
+        color: Theme.of(context).primaryColor,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: AttendanceSummary(key: _attendanceKey),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.all(8.0),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
                     return FeatureCard(
                       feature: features[index],
                       onTap: () =>
                           onTapFunctions[index](context), // ✅ Pass onTap
                     );
                   },
+                  childCount: features.length,
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
