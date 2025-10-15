@@ -1,9 +1,9 @@
 // monthly attendanve detail screen
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 import '../services/amonth_service.dart'; // API service file
+import '../services/user_preferences_manager.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({Key? key}) : super(key: key);
@@ -13,6 +13,7 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
+  final _prefsManager = UserPreferencesManager.instance;
   List<dynamic> attendanceData = [];
   bool isLoading = false;
   bool isTimeout = false; // Track timeout
@@ -68,8 +69,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final persNo = prefs.getString("persNo") ?? 'd1525';
+      final persNo = await _prefsManager.getPersNo() ?? 'd1525';
 
       final data = await Future.any([
         ApiService().fetchAttendance(persNo, selectedYear, selectedMonth),

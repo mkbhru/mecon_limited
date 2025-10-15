@@ -1,45 +1,22 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:jwt_decoder/jwt_decoder.dart'; // Import JWT decoder
 import '../utils/constants.dart';
+import 'user_preferences_manager.dart';
 
 class ApiService {
+  final _prefsManager = UserPreferencesManager.instance;
+
   Future<Map<String, dynamic>?> fetchAttendance() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token"); // Retrieve JWT token
+    // Get persNo from preferences manager
+    final persNo = await _prefsManager.getPersNo();
 
-    if (token == null) {
-      print("No token found!");
+    if (persNo == null || persNo.isEmpty) {
       return null;
     }
-    // print("Token: $token");
 
-    // Decode JWT token to extract `PersNo`
-    Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-    String? sub = decodedToken["sub"]; // Extract `PersNo` claim
-    String? persNo = sub;
-    String empInfoJson = decodedToken["empInfo"]?? "";
-    if (persNo == null) {
-      print("PersNo not found in token!");
-      return null;
-    }
-    //  Parse `empInfo` JSON string into a Map
-    Map<String, dynamic> empInfo = jsonDecode(empInfoJson);
-
-    await prefs.setString('persNo', sub ?? '');
-    await prefs.setString('FullName', empInfo["FullName"] ?? '');
-
-    await prefs.setString('persNo', sub?? '');
-    print("successfully saved in prefs: ${prefs.getString("persNo")}");
-    print("successfully saved in prefs: ${prefs.getString("FullName")}");
-
-
-    print("Extracted PersNo: $persNo"); // Debugging log
-
-    // Make API request using extracted `PersNo`
+    // Make API request using persNo
     final response = await http.get(
-      Uri.parse("$API_BASE_URL/attendance/attendance/$persNo"), // Pass PersNo in API URL
+      Uri.parse("$API_BASE_URL/attendance/attendance/$persNo"),
     );
 
     if (response.statusCode == 200) {
@@ -52,25 +29,15 @@ class ApiService {
         return null; // Unexpected format
       }
     } else {
-      print("Failed to fetch attendance: ${response.statusCode}");
       return null;
     }
   }
 
   Future<List<Map<String, dynamic>>?> fetchLatestPunches() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("token");
+    // Get persNo from preferences manager
+    final persNo = await _prefsManager.getPersNo();
 
-    if (token == null) {
-      print("No token found!");
-      return null;
-    }
-
-    Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-    String? persNo = decodedToken["sub"];
-
-    if (persNo == null) {
-      print("PersNo not found in token!");
+    if (persNo == null || persNo.isEmpty) {
       return null;
     }
 
@@ -86,7 +53,6 @@ class ApiService {
         return null;
       }
     } else {
-      print("Failed to fetch latest punches: ${response.statusCode}");
       return null;
     }
   }

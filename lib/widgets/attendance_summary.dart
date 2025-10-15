@@ -108,16 +108,20 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
                     ? const Center(child: CircularProgressIndicator())
                     : attendanceData == null
                         ? const Center(child: Text("Server is Busy!"))
-                        : GridView.count(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.6,
-                            shrinkWrap:
-                                true, // Prevents the GridView from scrolling
-                            physics:
-                                const NeverScrollableScrollPhysics(), // Disables scrolling
-                            children: [
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Calculate responsive aspect ratio based on screen width
+                              double screenWidth = constraints.maxWidth;
+                              double aspectRatio = screenWidth < 350 ? 1.4 : 1.6;
+
+                              return GridView.count(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: aspectRatio,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                children: [
                               AttendanceCard(
                                 icon: Icons.login,
                                 iconColor: Colors.green,
@@ -156,7 +160,9 @@ class AttendanceSummaryState extends State<AttendanceSummary> {
                                 points: "+\$120.00",
                                 pointsColor: Colors.green,
                               ),
-                            ],
+                                ],
+                              );
+                            },
                           ),
                 const SizedBox(height: 12),
                 Center(

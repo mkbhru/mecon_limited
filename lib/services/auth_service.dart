@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
+import 'user_preferences_manager.dart';
 
 class AuthService {
+  final _prefsManager = UserPreferencesManager.instance;
+
   Future<bool> login(String persno, String password) async {
     final url = Uri.parse('$API_BASE_URL/Auth/login');
     final response = await http.post(
@@ -16,8 +18,8 @@ class AuthService {
       final data = jsonDecode(response.body);
       final token = data['token']; // Assuming the API returns a token
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', token);
+      // Save token and automatically parse user data
+      await _prefsManager.saveToken(token);
 
       return true;
     } else {
@@ -26,9 +28,18 @@ class AuthService {
   }
 
   Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? token = prefs.getString("token");
+    // Check if token exists and is not expired
+    final hasToken = await _prefsManager.hasToken();
+    if (!hasToken) return false;
 
+    final isExpired = await _prefsManager.isTokenExpired();
+    if (isExpired) {
+      await logout(); // Clean up expired token
+      return false;
+    }
+
+    // Validate token with backend
+    final token = await _prefsManager.getToken();
     if (token == null) return false;
 
     try {
@@ -39,7 +50,6 @@ class AuthService {
           "Content-Type": "application/json"
         },
       );
-      // return true;
       return response.statusCode == 200;
     } catch (e) {
       return false;
@@ -47,8 +57,7 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove("token");
+    await _prefsManager.logout();
   }
 }
 

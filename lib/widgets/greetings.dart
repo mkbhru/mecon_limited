@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/user_preferences_manager.dart';
 
 class Greetings extends StatefulWidget {
   const Greetings({Key? key}) : super(key: key);
@@ -9,37 +9,37 @@ class Greetings extends StatefulWidget {
 }
 
 class _GreetingsState extends State<Greetings> {
-  String fullName = "User"; // Default user name
+  final _prefsManager = UserPreferencesManager.instance;
+  String firstName = "User"; // Default user name
 
   @override
   void initState() {
     super.initState();
-    _fetchFullName(); // Fetch username when widget initializes
+    _fetchUserName(); // Fetch username when widget initializes
   }
 
-  Future<void> _fetchFullName() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      String storedName = prefs.getString("FullName") ?? "User";
-      List<String> nameParts = storedName.split(" ");
-      fullName =
-          nameParts.isNotEmpty ? nameParts.first : "User"; // Extract first name
-    });
+  Future<void> _fetchUserName() async {
+    final name = await _prefsManager.getFirstName();
+    if (mounted) {
+      setState(() {
+        firstName = name;
+      });
+    }
   }
 
   // Public method to refresh the username (Call this after login)
   void refreshName() {
-    _fetchFullName();
+    _fetchUserName();
   }
 
   @override
   Widget build(BuildContext context) {
     final currDt = DateTime.now();
     String greeting = currDt.hour < 12
-        ? "Morning, $fullName 👋"
+        ? "Morning, $firstName 👋"
         : currDt.hour < 16
-            ? "Afternoon, $fullName 👋"
-            : "Evening, $fullName 👋";
+            ? "Afternoon, $firstName 👋"
+            : "Evening, $firstName 👋";
 
     return SizedBox(
       height: 50,
