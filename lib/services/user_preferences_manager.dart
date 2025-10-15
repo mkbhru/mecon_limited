@@ -212,8 +212,8 @@ class UserPreferencesManager {
       print('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
       print('   - Role: ${_currentUser!.role}');
       print('   - Is Admin: $isAdmin');
-      // return isAdmin;
-      return true;
+      return isAdmin;
+      // return true;
     }
 
     print('⚠️ [UserPreferencesManager] No cached user, loading from storage...');

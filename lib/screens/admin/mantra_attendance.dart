@@ -78,7 +78,8 @@ class _MantraAttendanceScreenState extends State<MantraAttendanceScreen> {
         title: const Text('Mantra Attendance'),
         backgroundColor: Colors.blue,
       ),
-      body: Padding(
+      resizeToAvoidBottomInset: true,
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -196,58 +197,69 @@ class _MantraAttendanceScreenState extends State<MantraAttendanceScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Expanded(
+              Card(
+                elevation: 2,
                 child: _punchDataResponse!.data.isEmpty
-                    ? const Center(
+                    ? const Padding(
+                        padding: EdgeInsets.all(32.0),
                         child: Text(
                           'No punch records found for this date',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       )
-                    : ListView.builder(
-                        itemCount: _punchDataResponse!.data.length,
-                        itemBuilder: (context, index) {
-                          final punch = _punchDataResponse!.data[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: Colors.blue,
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
+                    : Container(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.4,
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _punchDataResponse!.data.length,
+                          itemBuilder: (context, index) {
+                            final punch = _punchDataResponse!.data[index];
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 8,
                               ),
-                              title: Text(
-                                'Time: ${punch.punchTime}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              subtitle: Column(
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const SizedBox(height: 4),
-                                  Text('Location: ${punch.companyLocation}'),
-                                  Text('Device ID: ${punch.deviceId}'),
-                                  Text('Mode: ${punch.punchMode}'),
-                                  if (punch.referenceId.isNotEmpty)
-                                    Text('Reference: ${punch.referenceId}'),
+                                  Text(
+                                    '${index + 1}.'.padLeft(3),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[500],
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${punch.punchDate} | ${punch.punchTime}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black87,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
-                              trailing: Icon(
-                                Icons.fingerprint,
-                                color: Colors.blue.shade300,
-                              ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
               ),
+              const SizedBox(height: 16),
             ],
           ],
         ),

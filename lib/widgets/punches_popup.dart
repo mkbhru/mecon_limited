@@ -8,14 +8,30 @@ class PunchesPopup extends StatefulWidget {
   PunchesPopupState createState() => PunchesPopupState();
 }
 
-class PunchesPopupState extends State<PunchesPopup> {
+class PunchesPopupState extends State<PunchesPopup> with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>>? punches;
   bool isLoading = true;
+  AnimationController? _animationController;
+  Animation<double>? _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController!,
+      curve: Curves.easeInOut,
+    );
     fetchPunches();
+  }
+
+  @override
+  void dispose() {
+    _animationController?.dispose();
+    super.dispose();
   }
 
   Future<void> fetchPunches() async {
@@ -25,6 +41,7 @@ class PunchesPopupState extends State<PunchesPopup> {
         punches = data;
         isLoading = false;
       });
+      _animationController?.forward();
     }
   }
 
@@ -106,66 +123,143 @@ class PunchesPopupState extends State<PunchesPopup> {
                     bottomRight: Radius.circular(12),
                   ),
                 ),
-                child: isLoading
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "loading punch data..",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeInOut,
+                  switchOutCurve: Curves.easeInOut,
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.1),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        )),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: isLoading
+                      ? Center(
+                          key: const ValueKey('loading'),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TweenAnimationBuilder<double>(
+                                duration: const Duration(milliseconds: 800),
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                curve: Curves.easeInOut,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: child,
+                                  );
+                                },
+                                child: const SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.blue,
+                                    strokeWidth: 3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TweenAnimationBuilder<double>(
+                                duration: const Duration(milliseconds: 600),
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                curve: Curves.easeInOut,
+                                builder: (context, value, child) {
+                                  return Opacity(
+                                    opacity: value,
+                                    child: child,
+                                  );
+                                },
+                                child: const Text(
+                                  "Loading punch data...",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          const CircularProgressIndicator(color: Colors.blue),
-                        ],
-                      )
-                    : punches == null || punches!.isEmpty
-                        ? Center(
-                            child: Text(
-                              "No punches found for today",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
+                        )
+                      : punches == null || punches!.isEmpty
+                          ? Center(
+                              key: const ValueKey('empty'),
+                              child: Text(
+                                "No punches found for today",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            )
+                          : FadeTransition(
+                              key: const ValueKey('list'),
+                              opacity: _fadeAnimation ?? const AlwaysStoppedAnimation(1.0),
+                              child: ListView.builder(
+                                physics: const BouncingScrollPhysics(),
+                                itemCount: punches!.length,
+                                itemBuilder: (context, index) {
+                                  final punch = punches![index];
+
+                                  return TweenAnimationBuilder<double>(
+                                    duration: Duration(milliseconds: 300 + (index * 50)),
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    curve: Curves.easeOutCubic,
+                                    builder: (context, value, child) {
+                                      return Opacity(
+                                        opacity: value,
+                                        child: Transform.translate(
+                                          offset: Offset(0, 20 * (1 - value)),
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                        horizontal: 8,
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${index + 1}.'.padLeft(3),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[500],
+                                              fontFamily: 'monospace',
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              formatTimestamp(
+                                                punch['punchDate'],
+                                                punch['punchTime'],
+                                              ),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.black87,
+                                                fontFamily: 'monospace',
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                          )
-                        : ListView.builder(
-                            itemCount: punches!.length,
-                            itemBuilder: (context, index) {
-                              final punch = punches![index];
-                              
-                              return Container(
-                                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${index + 1}.'.padLeft(3),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[500],
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        formatTimestamp(punch['punchDate'], punch['punchTime']),
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.black87,
-                                          fontFamily: 'monospace',
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                ),
               ),
             ),
           ],
