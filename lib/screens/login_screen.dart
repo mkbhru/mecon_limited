@@ -17,24 +17,39 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
 
   void handleLogin() async {
+    // Validate input
+    if (persnoController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter personnel number and password')),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
     bool success = await authService.login(
       persnoController.text.trim(),
       passwordController.text.trim(),
     );
-    // bool success = true;
+
+    if (!mounted) return;
 
     setState(() => isLoading = false);
 
     if (success) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else {
+      // Show specific error message from AuthService
+      final errorMessage = authService.lastError ?? 'Login failed. Please try again.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid credentials')),
+        SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 4),
+          backgroundColor: Colors.red[700],
+        ),
       );
     }
   }
