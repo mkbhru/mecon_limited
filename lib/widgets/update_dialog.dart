@@ -111,10 +111,13 @@ class UpdateDialog extends StatelessWidget {
               ),
             const SizedBox(height: 16),
             Text(
-              'A new version of the app is available!',
+              '⚠️ Your app version is outdated.\nRunning old versions may cause crashes, data sync failures, or security vulnerabilities.\nUpdate now to stay protected and ensure uninterrupted access.',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[700],
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.redAccent,
+                height: 1.5,
               ),
             ),
             const SizedBox(height: 16),
