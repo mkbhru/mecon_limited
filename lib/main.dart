@@ -3,6 +3,9 @@ import 'screens/login_screen.dart';
 import 'screens/HomeScreen.dart';
 import 'services/auth_service.dart';
 import 'services/user_preferences_manager.dart';
+import 'services/update_service.dart';
+import 'widgets/update_dialog.dart';
+import 'utils/app_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +52,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showLoginStatusSnackbar();
+      _scheduleUpdateCheck();
     });
   }
 
@@ -57,9 +61,37 @@ class _MainScreenState extends State<MainScreen> {
       SnackBar(
         content:
             Text(widget.isLoggedIn ? 'Already logged in' : 'Please log in'),
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  void _scheduleUpdateCheck() {
+    debugPrint('⏰ [UpdateChecker] Scheduling update check after ${updateCheckDelay.inMinutes} minute(s)');
+
+    Future.delayed(updateCheckDelay, () async {
+      if (!mounted) return;
+
+      debugPrint('🚀 [UpdateChecker] Starting update check...');
+
+      final result = await UpdateService.instance.shouldShowUpdateDialog();
+
+      if (result.showDialog && mounted) {
+        debugPrint('📢 [UpdateChecker] Showing update dialog (forceUpdate: ${result.forceUpdate})');
+
+        showDialog(
+          context: context,
+          barrierDismissible: !result.forceUpdate,
+          builder: (context) => UpdateDialog(
+            versionInfo: result.versionInfo!,
+            currentVersion: result.currentVersion,
+            forceUpdate: result.forceUpdate,
+          ),
+        );
+      } else {
+        debugPrint('✅ [UpdateChecker] No update dialog needed');
+      }
+    });
   }
 
   @override
