@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../models/user_model.dart';
@@ -27,10 +28,10 @@ class UserPreferencesManager {
 
   // Initialize SharedPreferences (call this at app startup)
   Future<void> init() async {
-    print('🚀 [UserPreferencesManager] Initializing...');
+    debugPrint('🚀 [UserPreferencesManager] Initializing...');
     _prefs ??= await SharedPreferences.getInstance();
     await _loadUserData();
-    print('✅ [UserPreferencesManager] Initialization complete');
+    debugPrint('✅ [UserPreferencesManager] Initialization complete');
   }
 
   // Get SharedPreferences instance
@@ -44,7 +45,7 @@ class UserPreferencesManager {
   // Save token and parse user data
   Future<bool> saveToken(String token) async {
     try {
-      print('💾 [UserPreferencesManager] Saving token and parsing user data...');
+      debugPrint('💾 [UserPreferencesManager] Saving token and parsing user data...');
       final prefs = await _preferences;
       await prefs.setString(_keyToken, token);
       _cachedToken = token;
@@ -52,18 +53,18 @@ class UserPreferencesManager {
       // Parse user data from token
       _currentUser = UserModel.fromToken(token);
 
-      print('👤 [UserPreferencesManager] User data parsed from token:');
-      print('   - Name: ${_currentUser!.fullName}');
-      print('   - PersNo: ${_currentUser!.persNo}');
-      print('   - Role: ${_currentUser!.role}');
-      print('   - Is Admin: ${_currentUser!.isAdmin}');
+      debugPrint('👤 [UserPreferencesManager] User data parsed from token:');
+      debugPrint('   - Name: ${_currentUser!.fullName}');
+      debugPrint('   - PersNo: ${_currentUser!.persNo}');
+      debugPrint('   - Role: ${_currentUser!.role}');
+      debugPrint('   - Is Admin: ${_currentUser!.isAdmin}');
 
       // Save user data separately for quick access
       await _saveUserData(_currentUser!);
 
       return true;
     } catch (e) {
-      print('❌ [UserPreferencesManager] Error saving token: $e');
+      debugPrint('❌ [UserPreferencesManager] Error saving token: $e');
       return false;
     }
   }
@@ -119,37 +120,37 @@ class UserPreferencesManager {
   // Load user data from preferences
   Future<void> _loadUserData() async {
     try {
-      print('📂 [UserPreferencesManager] Loading user data...');
+      debugPrint('📂 [UserPreferencesManager] Loading user data...');
       final prefs = await _preferences;
 
       // Try to load from JSON first
       final userDataJson = prefs.getString(_keyUserData);
       if (userDataJson != null && userDataJson.isNotEmpty) {
         _currentUser = UserModel.fromJson(jsonDecode(userDataJson));
-        print('✅ [UserPreferencesManager] User data loaded from storage:');
-        print('   - Name: ${_currentUser!.fullName}');
-        print('   - PersNo: ${_currentUser!.persNo}');
-        print('   - Role: ${_currentUser!.role}');
-        print('   - Is Admin: ${_currentUser!.isAdmin}');
+        debugPrint('✅ [UserPreferencesManager] User data loaded from storage:');
+        debugPrint('   - Name: ${_currentUser!.fullName}');
+        debugPrint('   - PersNo: ${_currentUser!.persNo}');
+        debugPrint('   - Role: ${_currentUser!.role}');
+        debugPrint('   - Is Admin: ${_currentUser!.isAdmin}');
         return;
       }
 
       // Fallback: load from token if available
-      print('⚠️ [UserPreferencesManager] No stored user data, parsing from token...');
+      debugPrint('⚠️ [UserPreferencesManager] No stored user data, parsing from token...');
       final token = prefs.getString(_keyToken);
       if (token != null && token.isNotEmpty) {
         _currentUser = UserModel.fromToken(token);
         await _saveUserData(_currentUser!);
-        print('✅ [UserPreferencesManager] User data loaded from token:');
-        print('   - Name: ${_currentUser!.fullName}');
-        print('   - PersNo: ${_currentUser!.persNo}');
-        print('   - Role: ${_currentUser!.role}');
-        print('   - Is Admin: ${_currentUser!.isAdmin}');
+        debugPrint('✅ [UserPreferencesManager] User data loaded from token:');
+        debugPrint('   - Name: ${_currentUser!.fullName}');
+        debugPrint('   - PersNo: ${_currentUser!.persNo}');
+        debugPrint('   - Role: ${_currentUser!.role}');
+        debugPrint('   - Is Admin: ${_currentUser!.isAdmin}');
       } else {
-        print('❌ [UserPreferencesManager] No token found, user data unavailable');
+        debugPrint('❌ [UserPreferencesManager] No token found, user data unavailable');
       }
     } catch (e) {
-      print('❌ [UserPreferencesManager] Error loading user data: $e');
+      debugPrint('❌ [UserPreferencesManager] Error loading user data: $e');
       _currentUser = null;
     }
   }
@@ -204,30 +205,30 @@ class UserPreferencesManager {
 
   // Check if current user is admin
   Future<bool> isAdmin() async {
-    print('🔍 [UserPreferencesManager] Checking admin status...');
+    debugPrint('🔍 [UserPreferencesManager] Checking admin status...');
 
     if (_currentUser != null) {
       final isAdmin = _currentUser!.isAdmin;
-      print('✅ [UserPreferencesManager] Admin check (from cache):');
-      print('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
-      print('   - Role: ${_currentUser!.role}');
-      print('   - Is Admin: $isAdmin');
+      debugPrint('✅ [UserPreferencesManager] Admin check (from cache):');
+      debugPrint('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
+      debugPrint('   - Role: ${_currentUser!.role}');
+      debugPrint('   - Is Admin: $isAdmin');
       return isAdmin;
       // return true;
     }
 
-    print('⚠️ [UserPreferencesManager] No cached user, loading from storage...');
+    debugPrint('⚠️ [UserPreferencesManager] No cached user, loading from storage...');
     await _loadUserData();
 
     final isAdmin = _currentUser?.isAdmin ?? false;
     if (_currentUser != null) {
-      print('✅ [UserPreferencesManager] Admin check (after loading):');
-      print('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
-      print('   - Role: ${_currentUser!.role}');
-      print('   - Is Admin: $isAdmin');
+      debugPrint('✅ [UserPreferencesManager] Admin check (after loading):');
+      debugPrint('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
+      debugPrint('   - Role: ${_currentUser!.role}');
+      debugPrint('   - Is Admin: $isAdmin');
     } else {
-      print('❌ [UserPreferencesManager] No user data found');
-      print('   - Is Admin: $isAdmin (default: false)');
+      debugPrint('❌ [UserPreferencesManager] No user data found');
+      debugPrint('   - Is Admin: $isAdmin (default: false)');
     }
 
     return isAdmin;
@@ -237,9 +238,9 @@ class UserPreferencesManager {
 
   // Clear all user data
   Future<void> logout() async {
-    print('🚪 [UserPreferencesManager] Logging out user...');
+    debugPrint('🚪 [UserPreferencesManager] Logging out user...');
     if (_currentUser != null) {
-      print('   - Clearing data for: ${_currentUser!.fullName} (${_currentUser!.persNo})');
+      debugPrint('   - Clearing data for: ${_currentUser!.fullName} (${_currentUser!.persNo})');
     }
 
     final prefs = await _preferences;
@@ -254,7 +255,7 @@ class UserPreferencesManager {
     _cachedToken = null;
     _currentUser = null;
 
-    print('✅ [UserPreferencesManager] Logout complete, all user data cleared');
+    debugPrint('✅ [UserPreferencesManager] Logout complete, all user data cleared');
   }
 
   // ========== Additional Utility Methods ==========

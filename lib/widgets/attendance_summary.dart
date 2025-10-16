@@ -21,14 +21,14 @@ class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeep
   @override
   void initState() {
     super.initState();
-    // Load data only on first init
+    // Load data only on first init (silently, without messages)
     if (!_hasLoadedOnce) {
-      fetchAttendanceData();
+      fetchAttendanceData(showMessages: false);
       _hasLoadedOnce = true;
     }
   }
 
-  Future<void> fetchAttendanceData() async {
+  Future<void> fetchAttendanceData({bool showMessages = true}) async {
     if (!mounted) return;
 
     setState(() => isLoading = true);
@@ -44,8 +44,8 @@ class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeep
           isLoading = false;
         });
 
-        // Show success message if data was fetched
-        if (data != null) {
+        // Show success message only when explicitly refreshing
+        if (data != null && showMessages) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Attendance refreshed'),
@@ -62,30 +62,32 @@ class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeep
           isLoading = false;
         });
 
-        // Show error message
-        String errorMessage = 'Failed to refresh attendance';
-        if (e.toString().contains('SocketException') ||
-            e.toString().contains('Failed host lookup') ||
-            e.toString().contains('NetworkException')) {
-          errorMessage = 'No internet connection';
-        } else if (e.toString().contains('TimeoutException') ||
-                   e.toString().contains('timeout')) {
-          errorMessage = 'Connection timeout';
-        }
+        // Show error message only when explicitly refreshing
+        if (showMessages) {
+          String errorMessage = 'Failed to refresh attendance';
+          if (e.toString().contains('SocketException') ||
+              e.toString().contains('Failed host lookup') ||
+              e.toString().contains('NetworkException')) {
+            errorMessage = 'No internet connection';
+          } else if (e.toString().contains('TimeoutException') ||
+              e.toString().contains('timeout')) {
+            errorMessage = 'Connection timeout';
+          }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.wifi_off, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(errorMessage),
-              ],
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.wifi_off, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(errorMessage),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+              backgroundColor: Colors.red[700],
             ),
-            duration: const Duration(seconds: 3),
-            backgroundColor: Colors.red[700],
-          ),
-        );
+          );
+        }
       }
     }
   }
@@ -96,26 +98,8 @@ class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeep
     return (dateTime.length >= 11) ? dateTime.substring(11) : "--:--";
   }
 
-  String headerText(dynamic dateTimeString) {
-    if (dateTimeString == null || dateTimeString.isEmpty) return "loading..";
-
-    DateTime? dateTime = DateTime.tryParse(dateTimeString.toString());
-
-    if (dateTime == null) return "--:--"; // Handle invalid date
-
-    DateTime today = DateTime.now();
-
-    if (dateTime.year == today.year &&
-        dateTime.month == today.month &&
-        dateTime.day == today.day) {
-      return "Today's Attendance";
-    } else if (dateTime.year == today.year &&
-        dateTime.month == today.month &&
-        dateTime.day == today.day - 1) {
-      return "Yesterday's Attendance";
-    } else {
-      return "${dateTime.day}/${dateTime.month}/${dateTime.year}'s Attendance";
-    }
+  String headerText() {
+    return "Today's Attendance";
   }
 
   void showPunchesPopup() {
@@ -152,7 +136,7 @@ class AttendanceSummaryState extends State<AttendanceSummary> with AutomaticKeep
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            headerText(attendanceData?["TrDt"] ?? ""),
+            headerText(),
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),

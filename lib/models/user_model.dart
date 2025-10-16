@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
 class UserModel {
@@ -10,6 +11,12 @@ class UserModel {
   final String designation;
   final String? location;
   final String? phoneNumber;
+  final bool isAdminFlag; // Store the is_admin flag from JWT
+  final String? sapPersno;
+  final String? dob;
+  final String? sex;
+  final String? doj;
+  final String? dos;
 
   UserModel({
     required this.persNo,
@@ -20,6 +27,12 @@ class UserModel {
     this.designation = '',
     this.location,
     this.phoneNumber,
+    this.isAdminFlag = false,
+    this.sapPersno,
+    this.dob,
+    this.sex,
+    this.doj,
+    this.dos,
   });
 
   // Create UserModel from JWT token
@@ -27,8 +40,8 @@ class UserModel {
     try {
       Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
 
-      // Extract persNo from 'sub' claim
-      String persNo = decodedToken['sub'] ?? '';
+      // Extract persNo from 'sub' claim (convert to uppercase)
+      String persNo = (decodedToken['sub'] ?? '').toString().toUpperCase();
 
       // Parse empInfo JSON string if it exists
       Map<String, dynamic> empInfo = {};
@@ -36,18 +49,34 @@ class UserModel {
         empInfo = jsonDecode(decodedToken['empInfo']);
       }
 
+      // Extract is_admin flag (handle both boolean and string values)
+      bool isAdmin = false;
+      if (empInfo['is_admin'] != null) {
+        if (empInfo['is_admin'] is bool) {
+          isAdmin = empInfo['is_admin'];
+        } else if (empInfo['is_admin'] is String) {
+          isAdmin = empInfo['is_admin'].toString().toLowerCase() == 'true';
+        }
+      }
+
       return UserModel(
-        persNo: persNo,
+        persNo: empInfo['PersNo']?.toString().toUpperCase() ?? persNo,
         fullName: empInfo['FullName'] ?? empInfo['fullName'] ?? '',
         email: empInfo['Email'] ?? empInfo['email'] ?? decodedToken['email'] ?? '',
-        role: empInfo['Role'] ?? empInfo['role'] ?? decodedToken['role'] ?? 'user',
+        role: empInfo['Role'] ?? empInfo['role'] ?? (isAdmin ? 'admin' : 'user'),
         department: empInfo['Department'] ?? empInfo['department'] ?? '',
         designation: empInfo['Designation'] ?? empInfo['designation'] ?? '',
         location: empInfo['Location'] ?? empInfo['location'],
         phoneNumber: empInfo['PhoneNumber'] ?? empInfo['phoneNumber'],
+        isAdminFlag: isAdmin,
+        sapPersno: empInfo['Sap_persno']?.toString(),
+        dob: empInfo['DOB']?.toString(),
+        sex: empInfo['Sex']?.toString(),
+        doj: empInfo['DOJ']?.toString(),
+        dos: empInfo['DOS']?.toString(),
       );
     } catch (e) {
-      print('Error parsing token: $e');
+      debugPrint('Error parsing token: $e');
       // Return empty user on error
       return UserModel(persNo: '', fullName: '');
     }
@@ -64,6 +93,12 @@ class UserModel {
       designation: json['designation'] ?? '',
       location: json['location'],
       phoneNumber: json['phoneNumber'],
+      isAdminFlag: json['isAdminFlag'] ?? false,
+      sapPersno: json['sapPersno'],
+      dob: json['dob'],
+      sex: json['sex'],
+      doj: json['doj'],
+      dos: json['dos'],
     );
   }
 
@@ -78,6 +113,12 @@ class UserModel {
       'designation': designation,
       'location': location,
       'phoneNumber': phoneNumber,
+      'isAdminFlag': isAdminFlag,
+      'sapPersno': sapPersno,
+      'dob': dob,
+      'sex': sex,
+      'doj': doj,
+      'dos': dos,
     };
   }
 
@@ -89,7 +130,8 @@ class UserModel {
 
   // Check if user is admin
   bool get isAdmin {
-    return role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
+    // Prioritize the is_admin flag from JWT, fallback to role check
+    return isAdminFlag || role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
   }
 
   // Check if user model is valid (has persNo)
@@ -113,6 +155,12 @@ class UserModel {
     String? designation,
     String? location,
     String? phoneNumber,
+    bool? isAdminFlag,
+    String? sapPersno,
+    String? dob,
+    String? sex,
+    String? doj,
+    String? dos,
   }) {
     return UserModel(
       persNo: persNo ?? this.persNo,
@@ -123,6 +171,12 @@ class UserModel {
       designation: designation ?? this.designation,
       location: location ?? this.location,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      isAdminFlag: isAdminFlag ?? this.isAdminFlag,
+      sapPersno: sapPersno ?? this.sapPersno,
+      dob: dob ?? this.dob,
+      sex: sex ?? this.sex,
+      doj: doj ?? this.doj,
+      dos: dos ?? this.dos,
     );
   }
 }
