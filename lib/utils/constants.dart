@@ -5,8 +5,8 @@
 
 // const String API_BASE_URL = "http://10.0.5.34:8001/api";
 // prod
-// const String API_BASE_URL = "https://careers.meconlimited.co.in/m_app/api";
+const String API_BASE_URL = "https://careers.meconlimited.co.in/m_app/api";
 
 // dev
-const String API_BASE_URL = "http://10.0.10.58:8001/api";
+// const String API_BASE_URL = "http://10.0.10.58:8001/api";
 
