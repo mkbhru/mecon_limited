@@ -6,7 +6,8 @@ import '../models/user_model.dart';
 
 class UserPreferencesManager {
   // Singleton pattern
-  static final UserPreferencesManager _instance = UserPreferencesManager._internal();
+  static final UserPreferencesManager _instance =
+      UserPreferencesManager._internal();
   factory UserPreferencesManager() => _instance;
   UserPreferencesManager._internal();
 
@@ -45,7 +46,8 @@ class UserPreferencesManager {
   // Save token and parse user data
   Future<bool> saveToken(String token) async {
     try {
-      debugPrint('💾 [UserPreferencesManager] Saving token and parsing user data...');
+      debugPrint(
+          '💾 [UserPreferencesManager] Saving token and parsing user data...');
       final prefs = await _preferences;
       await prefs.setString(_keyToken, token);
       _cachedToken = token;
@@ -90,7 +92,12 @@ class UserPreferencesManager {
     if (token == null || token.isEmpty) return true;
 
     try {
-      return JwtDecoder.isExpired(token);
+      final expiryDate = JwtDecoder.getExpirationDate(token);
+
+      // Add 1 month (30 days)
+      final extendedExpiry = expiryDate.add(const Duration(days: 30));
+
+      return DateTime.now().isAfter(extendedExpiry);
     } catch (e) {
       return true;
     }
@@ -136,7 +143,8 @@ class UserPreferencesManager {
       }
 
       // Fallback: load from token if available
-      debugPrint('⚠️ [UserPreferencesManager] No stored user data, parsing from token...');
+      debugPrint(
+          '⚠️ [UserPreferencesManager] No stored user data, parsing from token...');
       final token = prefs.getString(_keyToken);
       if (token != null && token.isNotEmpty) {
         _currentUser = UserModel.fromToken(token);
@@ -147,7 +155,8 @@ class UserPreferencesManager {
         debugPrint('   - Role: ${_currentUser!.role}');
         debugPrint('   - Is Admin: ${_currentUser!.isAdmin}');
       } else {
-        debugPrint('❌ [UserPreferencesManager] No token found, user data unavailable');
+        debugPrint(
+            '❌ [UserPreferencesManager] No token found, user data unavailable');
       }
     } catch (e) {
       debugPrint('❌ [UserPreferencesManager] Error loading user data: $e');
@@ -210,20 +219,23 @@ class UserPreferencesManager {
     if (_currentUser != null) {
       final isAdmin = _currentUser!.isAdmin;
       debugPrint('✅ [UserPreferencesManager] Admin check (from cache):');
-      debugPrint('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
+      debugPrint(
+          '   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
       debugPrint('   - Role: ${_currentUser!.role}');
       debugPrint('   - Is Admin: $isAdmin');
       return isAdmin;
       // return true;
     }
 
-    debugPrint('⚠️ [UserPreferencesManager] No cached user, loading from storage...');
+    debugPrint(
+        '⚠️ [UserPreferencesManager] No cached user, loading from storage...');
     await _loadUserData();
 
     final isAdmin = _currentUser?.isAdmin ?? false;
     if (_currentUser != null) {
       debugPrint('✅ [UserPreferencesManager] Admin check (after loading):');
-      debugPrint('   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
+      debugPrint(
+          '   - User: ${_currentUser!.fullName} (${_currentUser!.persNo})');
       debugPrint('   - Role: ${_currentUser!.role}');
       debugPrint('   - Is Admin: $isAdmin');
     } else {
@@ -240,7 +252,8 @@ class UserPreferencesManager {
   Future<void> logout() async {
     debugPrint('🚪 [UserPreferencesManager] Logging out user...');
     if (_currentUser != null) {
-      debugPrint('   - Clearing data for: ${_currentUser!.fullName} (${_currentUser!.persNo})');
+      debugPrint(
+          '   - Clearing data for: ${_currentUser!.fullName} (${_currentUser!.persNo})');
     }
 
     final prefs = await _preferences;
@@ -255,7 +268,8 @@ class UserPreferencesManager {
     _cachedToken = null;
     _currentUser = null;
 
-    debugPrint('✅ [UserPreferencesManager] Logout complete, all user data cleared');
+    debugPrint(
+        '✅ [UserPreferencesManager] Logout complete, all user data cleared');
   }
 
   // ========== Additional Utility Methods ==========
