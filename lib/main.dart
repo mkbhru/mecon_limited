@@ -72,6 +72,13 @@ class _MainScreenState extends State<MainScreen> {
     Future.delayed(updateCheckDelay, () async {
       if (!mounted) return;
 
+      // Skip update dialog for admin users
+      final isAdmin = await UserPreferencesManager.instance.isAdmin();
+      if (isAdmin) {
+        debugPrint('👑 [UpdateChecker] Skipping update check for admin user');
+        return;
+      }
+
       debugPrint('🚀 [UpdateChecker] Starting update check...');
 
       final result = await UpdateService.instance.shouldShowUpdateDialog();
