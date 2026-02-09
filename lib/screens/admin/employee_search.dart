@@ -288,10 +288,20 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
                 if (employee.mobileNo.isNotEmpty)
                   _buildPhoneRow(employee.mobileNo, textColor),
 
+                // SAP Perno
+                if (employee.sapPersNo.isNotEmpty)
+                  _buildInfoRowWithCopy(
+                    Icons.badge_outlined,
+                    '${employee.sapPersNo}',
+                    employee.sapPersNo,
+                    textColor,
+                  ),
+
                 // Date of Birth
                 if (employee.dob != null)
-                  _buildInfoRow(
+                  _buildInfoRowWithCopy(
                     Icons.cake_outlined,
+                    DateFormat('dd MMM yyyy').format(employee.dob!),
                     DateFormat('dd MMM yyyy').format(employee.dob!),
                     textColor,
                   ),
@@ -303,7 +313,7 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text, Color textColor) {
+  Widget _buildInfoRowWithCopy(IconData icon, String text, String copyText, Color textColor) {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -319,6 +329,7 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
               ),
             ),
           ),
+          _buildCopyButton(copyText),
         ],
       ),
     );
@@ -459,6 +470,7 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
 
 class Employee {
   final String persNo;
+  final String sapPersNo;
   final String empNm;
   final String email;
   final String mobileNo;
@@ -467,6 +479,7 @@ class Employee {
 
   Employee({
     required this.persNo,
+    required this.sapPersNo,
     required this.empNm,
     required this.email,
     required this.mobileNo,
@@ -484,6 +497,7 @@ class Employee {
 
     return Employee(
       persNo: json['PersNo'] ?? '',
+      sapPersNo: json['Sap_persno'] ?? '',
       empNm: json['EmpNm'] ?? '',
       email: json['Email'] ?? '',
       mobileNo: json['MobileNo'] ?? '',
