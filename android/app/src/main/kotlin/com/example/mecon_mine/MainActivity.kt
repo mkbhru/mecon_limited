@@ -1,4 +1,4 @@
-package com.example.mecon_limited
+package com.example.mecon_mine
 
 import io.flutter.embedding.android.FlutterActivity
 
