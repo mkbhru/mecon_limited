@@ -65,7 +65,7 @@ class _MantraAttendanceScreenState extends State<MantraAttendanceScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to fetch attendance data: ${e.toString()}';
+        _errorMessage = 'No data: ${e.toString()}';
         _isLoading = false;
       });
     }

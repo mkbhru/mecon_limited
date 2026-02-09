@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/user_preferences_manager.dart';
 import 'admin/mantra_attendance.dart';
+import 'admin/employee_search.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -188,6 +189,22 @@ class _AdminPageState extends State<AdminPage> {
 
                         // User Management Section
                         _buildSectionTitle('User Management'),
+                        const SizedBox(height: 12),
+                        _buildAdminCard(
+                          icon: Icons.person_search,
+                          title: 'Employee Search',
+                          subtitle: 'Search employees by name or ID',
+                          color: Colors.cyan,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const EmployeeSearchScreen(),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 12),
                         _buildAdminCard(
                           icon: Icons.people,

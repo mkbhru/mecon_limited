@@ -1,0 +1,455 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class EmployeeSearchScreen extends StatefulWidget {
+  const EmployeeSearchScreen({super.key});
+
+  @override
+  State<EmployeeSearchScreen> createState() => _EmployeeSearchScreenState();
+}
+
+class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Employee> _employees = [];
+  bool _isLoading = false;
+  String? _error;
+
+  Future<void> _searchEmployees(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _employees = [];
+        _error = null;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://careers.meconlimited.co.in/m_app/api/employee/employee-search?query=${Uri.encodeComponent(query)}',
+        ),
+        headers: {'accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _employees = data.map((e) => Employee.fromJson(e)).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'Failed to fetch employees';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Error: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Employee Search'),
+        backgroundColor: Colors.red.shade700,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          // Search Bar
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.grey.shade100,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or personnel number...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchEmployees('');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {});
+              },
+              onSubmitted: _searchEmployees,
+              textInputAction: TextInputAction.search,
+            ),
+          ),
+
+          // Search Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _searchEmployees(_searchController.text),
+                icon: const Icon(Icons.search),
+                label: const Text('Search'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Results
+          Expanded(
+            child: _buildResults(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResults() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+            const SizedBox(height: 16),
+            Text(
+              _error!,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_employees.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person_search, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'Search for employees',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Enter a name or personnel number',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _employees.length,
+      itemBuilder: (context, index) {
+        final employee = _employees[index];
+        final isOffRoll = employee.onRoll != 'Y';
+        final textColor = isOffRoll ? Colors.red : Colors.black87;
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: isOffRoll
+                ? const BorderSide(color: Colors.red, width: 1.5)
+                : BorderSide.none,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with PersNo and OnRoll status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isOffRoll
+                            ? Colors.red.shade100
+                            : Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        employee.persNo,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isOffRoll ? Colors.red : Colors.blue.shade800,
+                        ),
+                      ),
+                    ),
+                    if (isOffRoll)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'OFF ROLL',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Employee Name
+                Text(
+                  employee.empNm,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Email with Mail Button
+                if (employee.email.isNotEmpty)
+                  _buildEmailRow(employee.email, textColor),
+
+                // Mobile Number with Call Button
+                if (employee.mobileNo.isNotEmpty)
+                  _buildPhoneRow(employee.mobileNo, textColor),
+
+                // Date of Birth
+                if (employee.dob != null)
+                  _buildInfoRow(
+                    Icons.cake_outlined,
+                    DateFormat('dd MMM yyyy').format(employee.dob!),
+                    textColor,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: textColor.withValues(alpha: 0.7)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmailRow(String email, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(Icons.email_outlined,
+              size: 18, color: textColor.withValues(alpha: 0.7)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              email,
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _sendEmail(email),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(
+                Icons.mail,
+                size: 18,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneRow(String phoneNumber, Color textColor) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(Icons.phone_outlined,
+              size: 18, color: textColor.withValues(alpha: 0.7)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              phoneNumber,
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _makePhoneCall(phoneNumber),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Icon(
+                Icons.call,
+                size: 18,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch phone dialer')),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendEmail(String email) async {
+    final Uri emailUri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(emailUri)) {
+      await launchUrl(emailUri);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch email client')),
+        );
+      }
+    }
+  }
+}
+
+class Employee {
+  final String persNo;
+  final String empNm;
+  final String email;
+  final String mobileNo;
+  final DateTime? dob;
+  final String onRoll;
+
+  Employee({
+    required this.persNo,
+    required this.empNm,
+    required this.email,
+    required this.mobileNo,
+    this.dob,
+    required this.onRoll,
+  });
+
+  factory Employee.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedDob;
+    if (json['DOB'] != null && json['DOB'].toString().isNotEmpty) {
+      try {
+        parsedDob = DateTime.parse(json['DOB']);
+      } catch (_) {}
+    }
+
+    return Employee(
+      persNo: json['PersNo'] ?? '',
+      empNm: json['EmpNm'] ?? '',
+      email: json['Email'] ?? '',
+      mobileNo: json['MobileNo'] ?? '',
+      dob: parsedDob,
+      onRoll: json['OnRoll'] ?? 'Y',
+    );
+  }
+}
