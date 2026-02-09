@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -220,24 +221,30 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isOffRoll
-                            ? Colors.red.shade100
-                            : Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        employee.persNo,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: isOffRoll ? Colors.red : Colors.blue.shade800,
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isOffRoll
+                                ? Colors.red.shade100
+                                : Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            employee.persNo,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isOffRoll ? Colors.red : Colors.blue.shade800,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        _buildCopyButton(employee.persNo),
+                      ],
                     ),
                     if (isOffRoll)
                       Container(
@@ -334,6 +341,8 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
               ),
             ),
           ),
+          _buildCopyButton(email),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () => _sendEmail(email),
             child: Container(
@@ -371,6 +380,8 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
               ),
             ),
           ),
+          _buildCopyButton(phoneNumber),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () => _makePhoneCall(phoneNumber),
             child: Container(
@@ -387,6 +398,34 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCopyButton(String text) {
+    return GestureDetector(
+      onTap: () => _copyToClipboard(text),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade600,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Icon(
+          Icons.copy,
+          size: 18,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Copied: $text'),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
