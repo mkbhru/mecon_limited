@@ -244,6 +244,22 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
                         ),
                         const SizedBox(width: 8),
                         _buildCopyButton(employee.persNo),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => EmployeeDetailsPopup.show(context, employee),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade600,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(
+                              Icons.list_alt,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     if (isOffRoll)
@@ -292,7 +308,7 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
                 if (employee.sapPersNo.isNotEmpty)
                   _buildInfoRowWithCopy(
                     Icons.badge_outlined,
-                    '${employee.sapPersNo}',
+                    employee.sapPersNo,
                     employee.sapPersNo,
                     textColor,
                   ),
@@ -305,6 +321,25 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
                     DateFormat('dd MMM yyyy').format(employee.dob!),
                     textColor,
                   ),
+
+                const SizedBox(height: 12),
+
+                // View Full Details Button
+                // SizedBox(
+                //   width: double.infinity,
+                //   child: OutlinedButton.icon(
+                //     onPressed: () => EmployeeDetailsPopup.show(context, employee),
+                //     icon: const Icon(Icons.info_outline, size: 18),
+                //     label: const Text('View Full Details'),
+                //     style: OutlinedButton.styleFrom(
+                //       foregroundColor: Colors.red.shade700,
+                //       side: BorderSide(color: Colors.red.shade700),
+                //       shape: RoundedRectangleBorder(
+                //         borderRadius: BorderRadius.circular(8),
+                //       ),
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -476,6 +511,7 @@ class Employee {
   final String mobileNo;
   final DateTime? dob;
   final String onRoll;
+  final Map<String, dynamic> rawData;
 
   Employee({
     required this.persNo,
@@ -485,6 +521,7 @@ class Employee {
     required this.mobileNo,
     this.dob,
     required this.onRoll,
+    required this.rawData,
   });
 
   factory Employee.fromJson(Map<String, dynamic> json) {
@@ -503,6 +540,170 @@ class Employee {
       mobileNo: json['MobileNo'] ?? '',
       dob: parsedDob,
       onRoll: json['OnRoll'] ?? 'Y',
+      rawData: json,
+    );
+  }
+}
+
+class EmployeeDetailsPopup extends StatelessWidget {
+  final Employee employee;
+
+  const EmployeeDetailsPopup({super.key, required this.employee});
+
+  static void show(BuildContext context, Employee employee) {
+    showDialog(
+      context: context,
+      builder: (context) => EmployeeDetailsPopup(employee: employee),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fieldLabels = {
+      'PersNo': 'Personnel No',
+      'Sap_persno': 'SAP Perno',
+      'EmpNm': 'Employee Name',
+      'Email': 'Email',
+      'MobileNo': 'Mobile No',
+      'Blood': 'Blood Group',
+      'DOB': 'Date of Birth',
+      'DOJ': 'Date of Joining',
+      'DOS': 'Date of Superannuation',
+      'DesgCd': 'Designation Code',
+      'SecCd': 'Section Code',
+      'LocCd': 'Location Code',
+      'OnRoll': 'On Roll',
+    };
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade700,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Employee Details',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: employee.rawData.entries.map((entry) {
+                  final label = fieldLabels[entry.key] ?? entry.key;
+                  String value = entry.value?.toString() ?? '';
+
+                  if ((entry.key == 'DOB' || entry.key == 'DOJ' || entry.key == 'DOS') &&
+                      value.isNotEmpty) {
+                    try {
+                      final date = DateTime.parse(value);
+                      value = DateFormat('dd MMM yyyy').format(date);
+                    } catch (_) {}
+                  }
+
+                  if (entry.key == 'OnRoll') {
+                    value = value == 'Y' ? 'Yes' : 'No';
+                  }
+
+                  return _DetailRow(label: label, value: value);
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _DetailRow({required this.label, required this.value});
+
+  void _copyToClipboard(BuildContext context) {
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Copied: $value'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          if (value.isNotEmpty)
+            GestureDetector(
+              onTap: () => _copyToClipboard(context),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Icon(
+                  Icons.copy,
+                  size: 16,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
