@@ -16,7 +16,7 @@ class AuthService {
       final response = await http.post(
         url,
         body: jsonEncode({'pers_no': persno, 'password': password}),
-        headers: {'Content-Type': 'application/json'},
+        headers: apiHeaders({'Content-Type': 'application/json'}),
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () {

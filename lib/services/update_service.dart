@@ -21,7 +21,7 @@ class UpdateService {
       final url = Uri.parse('$API_BASE_URL$updateCheckEndpoint');
       debugPrint('📡 [UpdateService] URL: $url');
 
-      final response = await http.get(url).timeout(
+      final response = await http.get(url, headers: apiHeaders()).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           debugPrint('⏱️ [UpdateService] Request timed out');
