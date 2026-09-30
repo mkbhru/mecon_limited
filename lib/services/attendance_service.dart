@@ -18,6 +18,7 @@ class ApiService {
       // Make API request using persNo with timeout
       final response = await http.get(
         Uri.parse("$API_BASE_URL/attendance/attendance/$persNo"),
+        headers: apiHeaders(),
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () => throw Exception('Connection timeout'),
@@ -52,6 +53,7 @@ class ApiService {
 
       final response = await http.get(
         Uri.parse("$API_BASE_URL/attendance/fetch-latest-punches/$persNo"),
+        headers: apiHeaders(),
       ).timeout(
         const Duration(seconds: 10),
         onTimeout: () => throw Exception('Connection timeout'),

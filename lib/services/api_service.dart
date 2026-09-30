@@ -11,11 +11,11 @@ class ApiService {
   // Helper method to get common headers with token
   static Future<Map<String, String>> _getHeaders() async {
     final token = await _prefsManager.getToken();
-    return {
+    return apiHeaders({
       'Content-Type': 'application/json',
       if (token != null) 'token': token,
       if (token != null) 'Authorization': 'Bearer $token',
-    };
+    });
   }
 
   static Future<List<Attendance>> fetchAttendance() async {

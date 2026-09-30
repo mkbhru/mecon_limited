@@ -41,6 +41,9 @@ android {
     // }
     buildTypes {
     release {
+        // No release keystore is configured. Sign with the debug key so
+        // `flutter build apk` can produce installable APKs.
+        signingConfig = signingConfigs.debug
         shrinkResources true
         minifyEnabled true
         // proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

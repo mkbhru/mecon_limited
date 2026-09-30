@@ -18,10 +18,10 @@ class NotesService {
   // Get authorization headers with JWT token
   Future<Map<String, String>> _getHeaders() async {
     final token = await UserPreferencesManager.instance.getToken();
-    return {
+    return apiHeaders({
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ${token ?? ''}',
-    };
+    });
   }
 
   // Get all notes for current user

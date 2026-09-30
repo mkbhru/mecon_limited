@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../utils/constants.dart';
 
 class EmployeeSearchScreen extends StatefulWidget {
   const EmployeeSearchScreen({super.key});
@@ -35,9 +36,9 @@ class _EmployeeSearchScreenState extends State<EmployeeSearchScreen> {
     try {
       final response = await http.get(
         Uri.parse(
-          'https://careers.meconlimited.co.in/m_app/api/employee/employee-search?query=${Uri.encodeComponent(query)}',
+          '$API_BASE_URL/employee/employee-search?query=${Uri.encodeComponent(query)}',
         ),
-        headers: {'accept': 'application/json'},
+        headers: apiHeaders({'accept': 'application/json'}),
       );
 
       if (response.statusCode == 200) {
